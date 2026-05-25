@@ -1,0 +1,32 @@
+---
+description: Workflow B — 多 Agent pipeline（中文）
+globs: workflow-b-pipeline/**/*
+alwaysApply: false
+---
+
+# Workflow B：多階段 Pipeline
+
+**必須**遵循 Skill `rtl-pipeline-workflow-b`，讀取 `SKILL.zh.md`。
+
+## 路徑
+
+| 產物 | 路徑 |
+|------|------|
+| 原始 SPEC（唯讀） | `spec/` |
+| 精煉 SPEC | `workflow-b-pipeline/spec_refined.md` |
+| 時序規劃 | `workflow-b-pipeline/timing_plan.md` |
+| 協作紀錄 | `workflow-b-pipeline/collaboration_log.md` |
+| RTL | `workflow-b-pipeline/rtl/*.v` |
+
+## 禁止
+
+- 修改 `spec/` 原始檔
+- Agent3 不得僅依原始 `spec/` 寫 RTL
+- 不可混用 Workflow A/B 的 rtl 目錄
+
+## 子任務
+
+- Agent1 / SPEC 精煉 → `spec_refined.md`
+- Agent2 / 時序規劃 → `timing_plan.md` + log
+- Agent3 / RTL → `workflow-b-pipeline/rtl/`
+- 完整 pipeline → Agent1 → Agent2（協作）→ Agent3

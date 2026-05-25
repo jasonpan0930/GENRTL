@@ -1,0 +1,41 @@
+---
+description: Workflow A — 直接從 SPEC 產生 Verilog RTL（中文）
+globs: workflow-a-direct/**/*
+alwaysApply: false
+---
+
+# Workflow A：直接 SPEC → RTL
+
+## 觸發
+
+執行 Workflow A，或 @workflow-a.zh。
+
+## SPEC 讀取順序
+
+1. `spec/design.spec.md`
+2. `spec/design.spec.txt`
+3. `spec/` 內**唯一** `.md` / `.txt`（排除 `*.example`）
+4. 找不到則回報並停止
+
+支援 `.txt` / `.md`；SPEC 可為中文或英文。
+
+## 限制
+
+- **不得**修改 `spec/`
+- **不得**寫入 `workflow-b-pipeline/`
+- 僅輸出 `workflow-a-direct/rtl/`
+
+## Verilog
+
+- 可綜合子集；單一 `clk`；預設 `rst_n` active-low 同步釋放
+- `module_name.v` = 模組名
+- port 與 SPEC 一致；註解標 SPEC 章節
+- 組合邏輯 `always @(*)`，避免 latch
+
+## 完成
+
+- [ ] 所有對外 port
+- [ ] 無多驅動 / 非預期組合迴路
+- [ ] 列出 `[ASSUMPTION]`
+
+回報：SPEC 路徑、`.v` 列表、假設。

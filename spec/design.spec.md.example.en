@@ -1,0 +1,24 @@
+# Design Specification — Example
+
+> Copy to `design.spec.md` or `design.spec.txt` and fill in.
+
+## 1. Overview
+
+- Design name:
+- Brief description:
+
+## 2. Interface (Ports)
+
+| Signal | Direction | Width | Description |
+|--------|-----------|-------|-------------|
+| clk | input | 1 | System clock |
+| rst_n | input | 1 | Active-low, synchronous release |
+| … | | | |
+
+## 3. Functional requirements
+
+## 4. Timing and performance
+
+## 5. Reset and initial state
+
+## 6. TBD / open questions

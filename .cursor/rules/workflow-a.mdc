@@ -1,0 +1,10 @@
+---
+description: Workflow A index — use workflow-a.zh or workflow-a.en
+globs: workflow-a-direct/**/*
+alwaysApply: false
+---
+
+# Workflow A
+
+- 中文：`@workflow-a.zh` → `workflow-a.zh.mdc`
+- English: `@workflow-a.en` → `workflow-a.en.mdc`

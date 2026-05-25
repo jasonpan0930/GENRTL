@@ -1,0 +1,41 @@
+---
+description: Workflow A — direct SPEC to Verilog RTL (English)
+globs: workflow-a-direct/**/*
+alwaysApply: false
+---
+
+# Workflow A: Direct SPEC → RTL
+
+## Trigger
+
+User requests Workflow A, or @workflow-a.en.
+
+## SPEC resolution order
+
+1. `spec/design.spec.md`
+2. `spec/design.spec.txt`
+3. The **only** `.md` or `.txt` under `spec/` (exclude `*.example`)
+4. If none found, report and stop
+
+Supports `.txt` and `.md`. SPEC may be Chinese or English.
+
+## Constraints
+
+- **Do not** modify anything under `spec/`
+- **Do not** write under `workflow-b-pipeline/`
+- Output **only** to `workflow-a-direct/rtl/`
+
+## Verilog
+
+- Synthesizable subset; single `clk`; default `rst_n` active-low, synchronous deassert
+- `module_name.v` matches module name
+- Top ports match SPEC; comment ports with SPEC section refs
+- Combinational logic in `always @(*)`; avoid latches
+
+## Done checklist
+
+- [ ] All required top-level ports
+- [ ] No obvious multi-drivers or unintended combinational loops
+- [ ] List `[ASSUMPTION]` where SPEC is silent
+
+Report: SPEC path, `.v` file list, assumptions.

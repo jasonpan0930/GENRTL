@@ -1,0 +1,12 @@
+# Simulation / synthesis artifacts (optional)
+*.vcd
+*.log
+simv
+csrc
+DVEfiles
+ucli.key
+vc_hdrs.h
+
+# OS
+.DS_Store
+Thumbs.db

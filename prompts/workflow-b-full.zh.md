@@ -1,4 +1,4 @@
-請依 **@rtl-pipeline-workflow-b** skill 執行 **Workflow B 完整 pipeline**（讀取 **SKILL.zh.md**）：
+建議只 **@rtl-pipeline-workflow-b**（讀 **SKILL.zh.md**）執行 **Workflow B 完整 pipeline**：
 
 - 原始 SPEC 在 `spec/`，不可修改
 - 產物寫入 `workflow-b-pipeline/`

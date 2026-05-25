@@ -12,11 +12,20 @@ description: >-
 
 Generate consistent Verilog without editing originals under `spec/`. SPEC may be Chinese or English; keep `spec_refined.md` in the same language as the source SPEC when possible.
 
+## Invocation (recommended)
+
+User **@rtl-pipeline-workflow-b** runs this skill (default: full pipeline Agent1→2→collaboration→3). New chat, Pass@1.  
+For a single stage, user says Agent1 / Agent2 / Agent3 only. Optional: `SPEC path: spec/design.spec.txt`.
+
 ## SPEC resolution
 
 1. `spec/design.spec.md`
 2. `spec/design.spec.txt`
 3. The only `.md` / `.txt` under `spec/` (exclude `*.example`)
+
+## Forbidden reads (Pass@1)
+
+Do not read `RTLLM/`, `verified_*.v`, `testbench.v`, `_chatgpt35/`, `_chatgpt4/`. Use `[ASSUMPTION]` or stop; never copy from reference RTL.
 
 ---
 

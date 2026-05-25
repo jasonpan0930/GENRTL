@@ -6,14 +6,17 @@
 # Run 01 — 2026-05-25
 
 - Model:
-- SPEC: spec/design.spec.md
+- SPEC: spec/design.spec.txt
+- RTLLM 題目: Arithmetic/Adder/adder_pipe_64bit
 - Workflow: A | B
-- Prompt 語言: zh | en
+- 啟動: @rtl-workflow-a | @rtl-pipeline-workflow-b
+- Skill 語言: zh | en
 
 ## 結果摘要
 
 - RTL 路徑：
-- Lint/Sim：
+- VCS compile:
+- VCS sim (pass / fail / hang):
 - 與 SPEC 一致性：
 
 ## 備註

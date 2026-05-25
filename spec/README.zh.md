@@ -7,5 +7,7 @@
 
 若兩者都存在，優先 `.md`。內容可用中文或英文。
 
-範例：`design.spec.md.example.zh`  
+- **實驗用**：從 RTLLM 複製 `design_description.txt` → `design.spec.md` 或 `design.spec.txt`
+- **範例（Agent 不讀）**：`design.spec.md.example.zh` / `.example.en`
+
 Workflow B 精煉結果 → `workflow-b-pipeline/spec_refined.md`（勿改 `spec/` 原始檔）。

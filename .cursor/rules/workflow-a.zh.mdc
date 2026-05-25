@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## 觸發
 
-執行 Workflow A，或 @workflow-a.zh。
+執行 Workflow A；建議 @rtl-workflow-a（skill），或 @workflow-a.zh（本 rule）。
 
 ## SPEC 讀取順序
 
@@ -24,6 +24,19 @@ alwaysApply: false
 - **不得**修改 `spec/`
 - **不得**寫入 `workflow-b-pipeline/`
 - 僅輸出 `workflow-a-direct/rtl/`
+
+## 讀取範圍（Pass@1 公平性）
+
+**僅允許**讀取 `spec/` 內 SPEC（見上方順序）。
+
+**禁止**讀取或引用（含 `@`、搜尋、推測）：
+
+- 任何 `RTLLM/` 路徑
+- `verified_*.v`、黃金參考 RTL
+- `testbench.v`（評測留給生成後人工／腳本）
+- `_chatgpt35/`、`_chatgpt4/` 等既有生成碼
+
+若 SPEC 缺 port／模組名，在回報中列出缺失並停止；**勿**從 testbench 或參考 RTL 補齊。
 
 ## Verilog
 

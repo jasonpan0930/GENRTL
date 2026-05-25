@@ -1,0 +1,12 @@
+# Benchmark / reference RTL — exclude from Cursor index (Pass@1 fairness)
+../RTLLM/
+**/verified_*.v
+**/testbench.v
+**/_chatgpt35/
+**/_chatgpt4/
+
+# VCS / sim artifacts (if evaluating inside repo)
+*.log
+simv
+csrc
+DVEfiles

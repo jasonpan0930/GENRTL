@@ -1,6 +1,6 @@
-Run **Workflow A (direct SPEC → RTL)** per **@workflow-a.en**:
+Run **Workflow A (direct SPEC → RTL)** per **@rtl-workflow-a** (read **SKILL.en.md**):
 
-1. Read the original SPEC under `spec/` (`design.spec.md` first, else `design.spec.txt`)
-2. Do not modify anything under `spec/`
-3. Generate Verilog under `workflow-a-direct/rtl/`
-4. Summarize: module list, SPEC mapping, reasonable assumptions
+- Read SPEC under `spec/`; do not modify `spec/`
+- Write Verilog to `workflow-a-direct/rtl/`
+- Pass@1; do not read RTLLM / testbench / verified
+- Report module list, SPEC path, `[ASSUMPTION]`

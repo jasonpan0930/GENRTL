@@ -2,8 +2,8 @@
 name: rtl-pipeline-workflow-b
 description: >-
   Workflow B multi-agent pipeline (SPEC refine → timing plan → RTL). Read
-  SKILL.zh.md for 中文 instructions or SKILL.en.md for English. SPEC may be
-  Chinese or English. Use when user runs Workflow B, Agent1/2/3, or rtl-pipeline.
+  SKILL.zh.md for 中文 or SKILL.en.md for English. Primary entry: @rtl-pipeline-workflow-b.
+  Use when user runs Workflow B, Agent1/2/3, or rtl-pipeline.
 ---
 
 # RTL Pipeline — Workflow B (index)

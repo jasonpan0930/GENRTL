@@ -11,11 +11,20 @@ description: >-
 
 不修改 `spec/` 原始 SPEC，經精煉與時序規劃產生一致 Verilog。SPEC 原文可中/英；`spec_refined.md` 建議與原文同語言。
 
+## 啟動（建議）
+
+使用者 **@rtl-pipeline-workflow-b** 即執行本 skill（全流程預設 Agent1→2→協作→3）。新對話、Pass@1。  
+分階段時使用者指明「僅 Agent1／Agent2／Agent3」。可選：`SPEC 路徑為 spec/design.spec.txt`。
+
 ## SPEC 讀取
 
 1. `spec/design.spec.md`
 2. `spec/design.spec.txt`
 3. `spec/` 內唯一 `.md` / `.txt`（排除 `*.example`）
+
+## 禁止讀取（Pass@1）
+
+勿讀 `RTLLM/`、`verified_*.v`、`testbench.v`、`_chatgpt35/`、`_chatgpt4/`。缺 port／行為僅用 `[ASSUMPTION]` 或停止。
 
 ---
 

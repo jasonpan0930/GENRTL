@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Workflow B：多階段 Pipeline
 
-**必須**遵循 Skill `rtl-pipeline-workflow-b`，讀取 `SKILL.zh.md`。
+**必須**遵循 Skill `@rtl-pipeline-workflow-b`，讀取 `SKILL.zh.md`。
 
 ## 路徑
 
@@ -23,6 +23,18 @@ alwaysApply: false
 - 修改 `spec/` 原始檔
 - Agent3 不得僅依原始 `spec/` 寫 RTL
 - 不可混用 Workflow A/B 的 rtl 目錄
+
+## 讀取範圍（Pass@1 公平性）
+
+各 Agent **僅允許**讀：
+
+| Agent | 可讀 |
+|-------|------|
+| Agent1 | `spec/` |
+| Agent2 | `spec/`、`spec_refined.md`、`collaboration_log.md` |
+| Agent3 | `spec_refined.md`、`timing_plan.md`、`collaboration_log.md` |
+
+**全階段禁止**：`RTLLM/`、`verified_*.v`、`testbench.v`、`_chatgpt35/`、`_chatgpt4/`。缺資訊則寫入 `[ASSUMPTION]` 或停止，勿從參考碼補齊。
 
 ## 子任務
 

@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Trigger
 
-User requests Workflow A, or @workflow-a.en.
+User requests Workflow A; prefer @rtl-workflow-a (skill), or @workflow-a.en (this rule).
 
 ## SPEC resolution order
 
@@ -24,6 +24,19 @@ Supports `.txt` and `.md`. SPEC may be Chinese or English.
 - **Do not** modify anything under `spec/`
 - **Do not** write under `workflow-b-pipeline/`
 - Output **only** to `workflow-a-direct/rtl/`
+
+## Read scope (Pass@1 fairness)
+
+**Allowed reads**: SPEC under `spec/` only (see resolution order above).
+
+**Do not** read or cite (including `@`, search, or inference from):
+
+- Any path under `RTLLM/`
+- `verified_*.v` or other golden reference RTL
+- `testbench.v` (reserve evaluation for post-generation scripts)
+- Prior LLM outputs under `_chatgpt35/`, `_chatgpt4/`, etc.
+
+If SPEC lacks ports or module name, report gaps and stop; **do not** fill gaps from testbench or reference RTL.
 
 ## Verilog
 

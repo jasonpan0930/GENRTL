@@ -1,4 +1,4 @@
-Run the **full Workflow B pipeline** per **@rtl-pipeline-workflow-b** (read **SKILL.en.md**):
+Prefer **@rtl-pipeline-workflow-b** only (read **SKILL.en.md**) for the **full Workflow B pipeline**:
 
 - Original SPEC in `spec/` — do not edit
 - Write artifacts under `workflow-b-pipeline/`

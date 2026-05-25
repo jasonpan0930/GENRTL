@@ -1,9 +1,9 @@
 # 工作進度與工作站交接 | Workstation Handoff
 
 **最後更新**：2026-05-25  
-**專案路徑（本機）**：`.../EDA專題/final`  
+**專案路徑（本機）**：`~/final_genrtl/myProject_GENRTL`  
 **Git remote**：`git@github.com:jasonpan0930/GENRTL.git`（branch `main`）  
-**最新 commit 訊息**：`first commit, backbone`
+**建議本次 commit 訊息**：`Add Workflow A skill, Pass@1 rules, cursorignore, docs`
 
 ---
 
@@ -35,12 +35,16 @@
 
 | 類型 | 路徑 | 說明 |
 |------|------|------|
-| Rules | `.cursor/rules/workflow-a.{zh,en}.mdc` | Workflow A 約束 |
-| Rules | `.cursor/rules/workflow-b.{zh,en}.mdc` | Workflow B 約束 |
-| Skill | `.cursor/skills/rtl-pipeline-workflow-b/SKILL.{zh,en}.md` | Agent1/2/3 分工與協作 |
+| Skill | `.cursor/skills/rtl-workflow-a/` | Workflow A：`@rtl-workflow-a` |
+| Skill | `.cursor/skills/rtl-pipeline-workflow-b/` | Workflow B：`@rtl-pipeline-workflow-b` |
+| Rules | `.cursor/rules/workflow-a.{zh,en}.mdc` | A 路徑／Pass@1 約束（輔助） |
+| Rules | `.cursor/rules/workflow-b.{zh,en}.mdc` | B 路徑／Pass@1 約束（輔助） |
 | Reference | `.../reference.{zh,en}.md` | `timing_plan.md` 章節格式 |
+| Ignore | `.cursorignore` | 排除 RTLLM／verified／testbench 索引 |
 
-索引檔：`workflow-a.mdc`、`workflow-b.mdc`、`SKILL.md`、`README.md`、`AGENTS.md`（指向中英版本）。
+**建議啟動**：只 `@rtl-workflow-a` 或 `@rtl-pipeline-workflow-b`（見 `README.md`）。`prompts/` 為可選短指令。
+
+索引檔：`workflow-a.mdc`、`workflow-b.mdc`、各 `SKILL.md`、`README.md`、`AGENTS.md`。
 
 ### 2.3 設計決策（已討論、已寫入文件）
 
@@ -49,10 +53,16 @@
 - **MCP / VCS**：建議主實驗用 **Pass@1**（不給 sim 反饋）；VCS 閉環除錯當**延伸實驗**，避免與 A/B 主比較混淆
 - **Benchmark**：傾向 **RTLLM v2.0**（NL `design_description.txt` + Makefile/TB + VCS），優於 verilog-eval 對本題的契合度
 
-### 2.4 Git
+### 2.4 試跑紀錄（本機，2026-05-25）
+
+- 題目：**adder_pipe_64bit**（`spec/design.spec.txt`）
+- Workflow A / B 皆曾產出 `adder_pipe_64bit.v`；VCS 編譯可過，**功能仿真曾 hang**（`o_en` 未拉高），需修 RTL 或對照 pipeline 時序
+- RTLLM 放在同層 `../RTLLM/`（**勿**在生成對話 @ 進 repo）
+
+### 2.5 Git
 
 - Repo：`GENRTL` on GitHub
-- 內容：專案骨架（rules、skills、prompts、templates），**尚無**真實 SPEC、RTL、實驗數據
+- 本次 push 重點：Workflow A skill、Pass@1 規則、`.cursorignore`、README／HANDOFF 更新
 
 ---
 
@@ -60,14 +70,12 @@
 
 | 項目 | 狀態 |
 |------|------|
-| 放入真實 SPEC（`spec/design.spec.md` 或 `.txt`） | ❌ 僅有 `.example` |
-| 執行 Workflow A / B 任一輪 | ❌ `rtl/` 無 `.v`；B 的中間檔為 placeholder |
-| 克隆 / 掛載 **RTLLM v2.0**（`rtllm_env/`） | ❌ 未建 |
+| 穩定 VCS pass（adder_pipe_64bit 等） | ⏳ 試跑未過功能測試 |
+| `experiments/` 正式 run 紀錄 | ⏳ 建議補每題 A/B 各一筆 |
+| 克隆 / 掛載 **RTLLM v2.0** 於 repo 外 `rtllm_env/` | 可選（本機已有 sibling `RTLLM/`） |
 | `benchmarks/rtllm_manifest.yaml` | ❌ 未建 |
 | `scripts/run_vcs.sh` 批次評測 | ❌ 未建 |
-| Skill 內 RTLLM 模組名 / 部署路徑規則 | ❌ 未建 |
 | MCP `run_vcs_simulation`（可選） | ❌ 未建 |
-| `experiments/` 實際 run 紀錄 | ❌ 無 |
 
 ---
 
@@ -88,7 +96,9 @@ final/                          ← Cursor 開這個資料夾
 ├── experiments/
 └── .cursor/
     ├── rules/
-    └── skills/rtl-pipeline-workflow-b/
+    └── skills/
+        ├── rtl-workflow-a/
+        └── rtl-pipeline-workflow-b/
 ```
 
 **計畫中的上層結構（工作站）**：
@@ -125,23 +135,23 @@ cd final
 列出 .cursor/rules 與 .cursor/skills 下與 workflow 相關的檔案，並簡述 Workflow A 與 B 的輸出路徑。
 ```
 
-應能引用 `workflow-a.zh.mdc`、`SKILL.zh.md` 等。
+應能引用 `@rtl-workflow-a`、`@rtl-pipeline-workflow-b` 與對應 `SKILL.*.md`。
 
 ### 5.4 接 RTLLM（下一階段實作）
 
 1. 在 `final` 同層 clone RTLLM → `../rtllm_env/`（路徑依工作站調整）
-2. 選一題（建議先 **FP32_add**）：
-   - 複製 `design_description.txt` → `spec/FP32_add.spec.md`
-   - 從 `testbench.v` 確認 **top module 名稱與 port**
+2. 選一題（例如 **adder_pipe_64bit**）：
+   - 複製 `design_description.txt` → `spec/design.spec.txt`（或 `design.spec.md`）
+   - **人工**從 `testbench.v` 確認 top／port 後寫入 `spec/`（生成 Agent **勿**讀 testbench／`verified_*.v`；見 `.cursorignore`）
 3. 跑 Workflow A / B，產出 `.v` 後複製到 RTLLM 該題目錄
 4. `make vcs && make sim`（確認 `VCS_HOME`、license）
 5. 結果記入 `experiments/YYYY-MM-DD_run01.md`
 
 ### 5.5 第一次實驗 prompt（中文）
 
-**Workflow A**：複製 `prompts/workflow-a.zh.md`
+**Workflow A**：`@rtl-workflow-a`（可選 `SPEC: spec/design.spec.txt`）
 
-**Workflow B 全流程**：複製 `prompts/workflow-b-full.zh.md`
+**Workflow B 全流程**：`@rtl-pipeline-workflow-b`
 
 ---
 
@@ -164,10 +174,10 @@ cd final
 
 | 想做什麼 | 用什麼 |
 |----------|--------|
-| 中文跑 Workflow A | `prompts/workflow-a.zh.md` + `@workflow-a.zh` |
-| 英文跑 Workflow A | `prompts/workflow-a.en.md` + `@workflow-a.en` |
-| 中文跑 Workflow B 全流程 | `prompts/workflow-b-full.zh.md` + `@rtl-pipeline-workflow-b`（SKILL.zh.md） |
-| 只跑 Agent1/2/3 | `prompts/workflow-b-agent{1,2,3}.zh.md` |
+| 中文跑 Workflow A | `@rtl-workflow-a`（SKILL.zh.md） |
+| 英文跑 Workflow A | `@rtl-workflow-a`（SKILL.en.md） |
+| 中文跑 Workflow B 全流程 | `@rtl-pipeline-workflow-b`（SKILL.zh.md） |
+| 只跑 Agent1/2/3 | `@rtl-pipeline-workflow-b` + 註明階段，或 `prompts/workflow-b-agent{1,2,3}.zh.md` |
 | 專案與 Agent 說明 | `AGENTS.zh.md` / `AGENTS.en.md` |
 | 完整中文說明 | `README.zh.md` |
 
@@ -187,9 +197,9 @@ cd final
 
 1. [ ] 工作站 `git pull`，Cursor 開啟 `final/`
 2. [ ] Clone RTLLM v2.0 到 `rtllm_env/`
-3. [ ] 新增 `spec/FP32_add.spec.md`（從 RTLLM 第一題）
-4. [ ] 手動跑通 **Workflow A** 一題 + VCS
-5. [ ] 手動跑通 **Workflow B** 全流程一題 + VCS
+3. [ ] 每題：`design_description.txt` → `spec/design.spec.txt`
+4. [x] 試跑 **Workflow A / B**（adder_pipe_64bit）— VCS 功能待修
+5. [ ] 修 RTL 或 SPEC 後重跑 `make sim` 並寫 `experiments/`
 6. [ ] 新增 `benchmarks/` + `scripts/run_vcs.sh`（可請 Cursor 協助）
 7. [ ] 撰寫第一筆 `experiments/..._run01.md`
 8. [ ] （可選）更新 Skill：RTLLM 部署與 module 命名規則
@@ -198,10 +208,10 @@ cd final
 
 ## 10. 對話脈絡（給新 Cursor session）
 
-此前在筆電上完成：**專案骨架 + 中英雙語 rules/skills/prompts**；討論並同意 **RTLLM + VCS** 作 benchmark；**尚未**跑任何生成或仿真。下一個工作階段在**工作站**：接 RTLLM、跑第一題、再考慮評測腳本/MCP。
+已完成：**Workflow B skill + Workflow A skill（`rtl-workflow-a`）**、Pass@1 讀取限制、`.cursorignore`、文件改為 **@skill 啟動**。已試跑 adder_pipe_64bit（A/B），VCS 仿真待修。
 
 在新對話可貼：
 
 ```
-請讀 @HANDOFF.md，我們要在工作站接續：先整合 RTLLM FP32_add，再跑 Workflow A/B。
+請讀 @HANDOFF.md。用 @rtl-workflow-a 或 @rtl-pipeline-workflow-b，SPEC 在 spec/design.spec.txt。
 ```

@@ -1,10 +1,10 @@
 ---
-description: Workflow B index — use workflow-b.zh or workflow-b.en
+description: Workflow B index — prefer @rtl-pipeline-workflow-b skill
 globs: workflow-b-pipeline/**/*
 alwaysApply: false
 ---
 
 # Workflow B
 
-- 中文：`@workflow-b.zh` + Skill `SKILL.zh.md`
-- English: `@workflow-b.en` + Skill `SKILL.en.md`
+- **Skill（建議）**：`@rtl-pipeline-workflow-b` → `SKILL.{zh,en}.md`
+- 中文 rule：`@workflow-b.zh` | English: `@workflow-b.en`

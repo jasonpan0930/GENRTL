@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Workflow B: Multi-Stage Pipeline
 
-**Must** follow skill `rtl-pipeline-workflow-b`; read `SKILL.en.md`.
+**Must** follow skill `@rtl-pipeline-workflow-b`; read `SKILL.en.md`.
 
 ## Paths
 
@@ -23,6 +23,16 @@ alwaysApply: false
 - Editing originals under `spec/`
 - Agent3 generating RTL from raw `spec/` only
 - Mixing Workflow A and B RTL directories
+
+## Read scope (Pass@1 fairness)
+
+| Agent | Allowed reads |
+|-------|----------------|
+| Agent1 | `spec/` |
+| Agent2 | `spec/`, `spec_refined.md`, `collaboration_log.md` |
+| Agent3 | `spec_refined.md`, `timing_plan.md`, `collaboration_log.md` |
+
+**All agents must not** read `RTLLM/`, `verified_*.v`, `testbench.v`, `_chatgpt35/`, `_chatgpt4/`. Record `[ASSUMPTION]` or stop; do not fill gaps from reference RTL.
 
 ## Sub-tasks
 

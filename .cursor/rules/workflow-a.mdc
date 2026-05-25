@@ -1,10 +1,11 @@
 ---
-description: Workflow A index — use workflow-a.zh or workflow-a.en
+description: Workflow A index — prefer @rtl-workflow-a skill; or workflow-a.zh / workflow-a.en rules
 globs: workflow-a-direct/**/*
 alwaysApply: false
 ---
 
 # Workflow A
 
-- 中文：`@workflow-a.zh` → `workflow-a.zh.mdc`
-- English: `@workflow-a.en` → `workflow-a.en.mdc`
+- **Skill（建議）**：`@rtl-workflow-a` → `.cursor/skills/rtl-workflow-a/SKILL.{zh,en}.md`
+- 中文 rule：`@workflow-a.zh` → `workflow-a.zh.mdc`
+- English rule: `@workflow-a.en` → `workflow-a.en.mdc`

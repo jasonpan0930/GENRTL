@@ -17,15 +17,31 @@ Generate consistent Verilog without editing originals under `spec/`. SPEC may be
 User **@rtl-pipeline-workflow-b** runs this skill (default: full pipeline Agent1→2→collaboration→3). New chat, Pass@1.  
 For a single stage, user says Agent1 / Agent2 / Agent3 only.
 
-### RTLLM problem shorthand
+### Problem shorthand
 
 User may say **`RTLLM #6`** or **`adder_pipe_64bit`**.
+User may also say **`VerilogEval #1`** or **`zero`**; in that case top_module is always `TopModule`.
+
+#### Common setup
 
 0. **At task start**, run: `source ~/source.sh`
+
+#### RTLLM flow
+
 1. If user gives `RTLLM #N` or id, **Agent runs** `./scripts/prep_problem.sh <N|id> --full-clean`
 2. Read run context + SPEC; output `workflow-b-pipeline/rtl/<top_module>.v`
 3. After RTL, **Agent runs** `./scripts/archive_run.sh b`
-4. On **with eval**: **run** `./scripts/run_vcs.sh b`; report only; **Pass@1** forbids RTL edits from logs
+4. On **with eval**: **run** `./scripts/run_vcs.sh b`; report only
+
+#### VerilogEval flow
+
+1. If user gives `VerilogEval #N` or id, **Agent runs** `./scripts/prep_ve_problem.sh <N|id> --full-clean`
+2. Read run context + SPEC; output `workflow-b-pipeline/rtl/TopModule.v` (top_module is always `TopModule`)
+3. On **with eval**: **run** `./scripts/run_ve_sim.sh b <N>`; report only
+
+#### Common rules
+
+**Pass@1** forbids RTL edits from logs
 
 Optional: `SPEC: spec/design.spec.txt` · `with eval`
 

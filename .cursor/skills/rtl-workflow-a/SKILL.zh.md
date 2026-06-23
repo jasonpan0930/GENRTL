@@ -15,17 +15,33 @@ description: >-
 
 使用者 **@rtl-workflow-a** 即執行本 skill。新對話、Pass@1：只生成一次，不讀仿真 log 迭代。
 
-### RTLLM 題號簡寫
+### 題號簡寫
 
 可說 **`RTLLM #6`** 或 **`adder_pipe_64bit`**。
+也可說 **`VerilogEval #1`** 或 **`zero`**；此時 top_module 固定為 `TopModule`。
+
+#### 共通前置
 
 0. **任務開始時**，Agent 在終端先執行：`source ~/source.sh`（載入 VCS；我們的 `scripts/*.sh` 也會自動 source）
-1. 若使用者給 `RTLLM #N` 或題目 id，**Agent 在終端執行** `./scripts/prep_problem.sh <N|id>`
+
+#### RTLLM 流程
+
+1.若使用者給 `RTLLM #N` 或題目 id，**Agent 在終端執行** `./scripts/prep_problem.sh <N|id>`
 2. 讀 `experiments/.run_context.json` 與 `spec/design.spec.txt`
 3. 頂層模組名 = `top_module`；輸出 `workflow-a-direct/rtl/<top_module>.v`
 4. RTL 完成後 **Agent 執行** `./scripts/archive_run.sh a`
-5. 若使用者說 **含評測** / `with eval`，或 RTLLM 批次實驗預設：**執行** `./scripts/run_vcs.sh a`，僅回報 CSV 結果
-6. **Pass@1**：禁止依 VCS log 修改 RTL；禁止讀 testbench／verified
+5. 若使用者說 **含評測** / `with eval`：**執行** `./scripts/run_vcs.sh a`，僅回報 CSV 結果
+
+#### VerilogEval 流程
+
+1. 若使用者給 `VerilogEval #N` 或題目 id，**Agent 在終端執行** `./scripts/prep_ve_problem.sh <N|id> --full-clean`
+2. 讀 `experiments/.run_context.json` 與 `spec/design.spec.txt`
+3. 頂層模組名固定為 `TopModule`；輸出 `workflow-a-direct/rtl/TopModule.v`
+4. RTL 完成後，若使用者說 **含評測** / `with eval`：**執行** `./scripts/run_ve_sim.sh a <N>`，僅回報 CSV 結果
+
+#### 通用規則
+
+**Pass@1**：禁止依 VCS log 修改 RTL；禁止讀 testbench／verified／RefModule
 
 可選：`SPEC: spec/design.spec.txt` · `with eval`
 

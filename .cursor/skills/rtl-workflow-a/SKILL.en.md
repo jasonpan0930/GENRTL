@@ -15,17 +15,33 @@ Generate Verilog **in one pass** from the original SPEC under `spec/`. No refine
 
 User **@rtl-workflow-a** triggers this skill. Use a **new chat**, **Pass@1** (single generation; no VCS log feedback loop).
 
-### RTLLM problem shorthand
+### Problem shorthand
 
 User may say **`RTLLM #6`** or **`adder_pipe_64bit`**.
+User may also say **`VerilogEval #1`** or **`zero`**; in that case top_module is always `TopModule`.
+
+#### Common setup
 
 0. **At task start**, Agent runs in terminal: `source ~/source.sh` (VCS toolchain; our `scripts/*.sh` also auto-source)
+
+#### RTLLM flow
+
 1. If user gives `RTLLM #N` or problem id, **Agent runs** `./scripts/prep_problem.sh <N|id>` in terminal
 2. Read `experiments/.run_context.json` and `spec/design.spec.txt`
 3. Top module = `top_module`; output `workflow-a-direct/rtl/<top_module>.v`
 4. After RTL, **Agent runs** `./scripts/archive_run.sh a`
-5. If user says **with eval** or RTLLM batch default: **run** `./scripts/run_vcs.sh a`; report CSV outcome only
-6. **Pass@1**: do not edit RTL based on VCS logs; do not read testbench/verified
+5. If user says **with eval**: **run** `./scripts/run_vcs.sh a`; report CSV outcome only
+
+#### VerilogEval flow
+
+1. If user gives `VerilogEval #N` or problem id, **Agent runs** `./scripts/prep_ve_problem.sh <N|id> --full-clean` in terminal
+2. Read `experiments/.run_context.json` and `spec/design.spec.txt`
+3. Top module is always `TopModule`; output `workflow-a-direct/rtl/TopModule.v`
+4. After RTL, if **with eval**: **run** `./scripts/run_ve_sim.sh a <N>`; report CSV outcome only
+
+#### Common rules
+
+**Pass@1**: do not edit RTL based on VCS logs; do not read testbench/verified/RefModule
 
 Optional: `SPEC: spec/design.spec.txt` · `with eval`
 

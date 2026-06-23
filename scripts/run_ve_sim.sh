@@ -7,8 +7,66 @@ source "$(dirname "$0")/ve_env.sh"
 WF="${1:?Usage: $0 <a|b> [index]}"
 QUERY="${2:-}"
 
+# If index given, look up problem info from manifest and write run context
+# WITHOUT re-running prep_ve_problem.sh (which would delete generated RTL)
 if [[ -n "$QUERY" ]]; then
-  "$GENRTL_SCRIPTS/prep_ve_problem.sh" "$QUERY" >/dev/null
+  python3 - <<PY
+import re, json
+from pathlib import Path
+
+query = "$QUERY"
+mf = Path("$VE_MANIFEST").read_text()
+problems = []
+cur = None
+for line in mf.splitlines():
+    m = re.match(r"\s+-\s+index:\s+(\d+)", line)
+    if m:
+        if cur: problems.append(cur)
+        cur = {"index": int(m.group(1))}
+        continue
+    if cur is None: continue
+    for key in ("id", "path", "top_module"):
+        m2 = re.match(rf"\s+{key}:\s+(.+)", line)
+        if m2:
+            cur[key] = m2.group(1).strip()
+if cur: problems.append(cur)
+
+q = query.lower()
+found = None
+if query.isdigit():
+    idx = int(query)
+    for p in problems:
+        if p["index"] == idx:
+            found = p
+            break
+else:
+    for p in problems:
+        if p["id"].lower() == q:
+            found = p
+            break
+if found is None:
+    raise SystemExit(f"Problem '{query}' not found in manifest")
+
+idx = found["index"]
+pid = found["id"]
+tm = found.get("top_module", "TopModule")
+prompt_file = f"$VE_DATASET/Prob{idx:03d}_{pid}_prompt.txt"
+ref_file = f"$VE_DATASET/Prob{idx:03d}_{pid}_ref.sv"
+test_file = f"$VE_DATASET/Prob{idx:03d}_{pid}_test.sv"
+
+ctx = {
+    "benchmark": "verilogeval",
+    "problem_index": idx,
+    "problem_id": pid,
+    "top_module": tm,
+    "prompt_file": prompt_file,
+    "ref_file": ref_file,
+    "test_file": test_file,
+}
+Path("$RUN_CONTEXT").parent.mkdir(parents=True, exist_ok=True)
+Path("$RUN_CONTEXT").write_text(json.dumps(ctx, indent=2) + "\n")
+print(f"Looked up problem #{idx} ({pid})")
+PY
 fi
 
 if [[ ! -f "$RUN_CONTEXT" ]]; then

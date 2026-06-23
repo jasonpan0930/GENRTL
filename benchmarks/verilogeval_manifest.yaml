@@ -1,0 +1,474 @@
+# VerilogEval v2 — spec-to-rtl, auto-generated
+# VE_ROOT: /home/jasonpan/final_genrtl/VerilogEval
+# top_module: always TopModule (VerilogEval convention)
+version: 1
+count: 156
+problems:
+  - index: 1
+    id: zero
+    top_module: TopModule
+  - index: 2
+    id: m2014_q4i
+    top_module: TopModule
+  - index: 3
+    id: step_one
+    top_module: TopModule
+  - index: 4
+    id: vector2
+    top_module: TopModule
+  - index: 5
+    id: notgate
+    top_module: TopModule
+  - index: 6
+    id: vectorr
+    top_module: TopModule
+  - index: 7
+    id: wire
+    top_module: TopModule
+  - index: 8
+    id: m2014_q4h
+    top_module: TopModule
+  - index: 9
+    id: popcount3
+    top_module: TopModule
+  - index: 10
+    id: mt2015_q4a
+    top_module: TopModule
+  - index: 11
+    id: norgate
+    top_module: TopModule
+  - index: 12
+    id: xnorgate
+    top_module: TopModule
+  - index: 13
+    id: m2014_q4e
+    top_module: TopModule
+  - index: 14
+    id: andgate
+    top_module: TopModule
+  - index: 15
+    id: vector1
+    top_module: TopModule
+  - index: 16
+    id: m2014_q4j
+    top_module: TopModule
+  - index: 17
+    id: mux2to1v
+    top_module: TopModule
+  - index: 18
+    id: mux256to1
+    top_module: TopModule
+  - index: 19
+    id: m2014_q4f
+    top_module: TopModule
+  - index: 20
+    id: mt2015_eq2
+    top_module: TopModule
+  - index: 21
+    id: mux256to1v
+    top_module: TopModule
+  - index: 22
+    id: mux2to1
+    top_module: TopModule
+  - index: 23
+    id: vector100r
+    top_module: TopModule
+  - index: 24
+    id: hadd
+    top_module: TopModule
+  - index: 25
+    id: reduction
+    top_module: TopModule
+  - index: 26
+    id: alwaysblock1
+    top_module: TopModule
+  - index: 27
+    id: fadd
+    top_module: TopModule
+  - index: 28
+    id: m2014_q4a
+    top_module: TopModule
+  - index: 29
+    id: m2014_q4g
+    top_module: TopModule
+  - index: 30
+    id: popcount255
+    top_module: TopModule
+  - index: 31
+    id: dff
+    top_module: TopModule
+  - index: 32
+    id: vector0
+    top_module: TopModule
+  - index: 33
+    id: ece241_2014_q1c
+    top_module: TopModule
+  - index: 34
+    id: dff8
+    top_module: TopModule
+  - index: 35
+    id: count1to10
+    top_module: TopModule
+  - index: 36
+    id: ringer
+    top_module: TopModule
+  - index: 37
+    id: review2015_count1k
+    top_module: TopModule
+  - index: 38
+    id: count15
+    top_module: TopModule
+  - index: 39
+    id: always_if
+    top_module: TopModule
+  - index: 40
+    id: count10
+    top_module: TopModule
+  - index: 41
+    id: dff8r
+    top_module: TopModule
+  - index: 42
+    id: vector4
+    top_module: TopModule
+  - index: 43
+    id: vector5
+    top_module: TopModule
+  - index: 44
+    id: vectorgates
+    top_module: TopModule
+  - index: 45
+    id: edgedetect2
+    top_module: TopModule
+  - index: 46
+    id: dff8p
+    top_module: TopModule
+  - index: 47
+    id: dff8ar
+    top_module: TopModule
+  - index: 48
+    id: m2014_q4c
+    top_module: TopModule
+  - index: 49
+    id: m2014_q4b
+    top_module: TopModule
+  - index: 50
+    id: kmap1
+    top_module: TopModule
+  - index: 51
+    id: gates4
+    top_module: TopModule
+  - index: 52
+    id: gates100
+    top_module: TopModule
+  - index: 53
+    id: m2014_q4d
+    top_module: TopModule
+  - index: 54
+    id: edgedetect
+    top_module: TopModule
+  - index: 55
+    id: conditional
+    top_module: TopModule
+  - index: 56
+    id: ece241_2013_q7
+    top_module: TopModule
+  - index: 57
+    id: kmap2
+    top_module: TopModule
+  - index: 58
+    id: alwaysblock2
+    top_module: TopModule
+  - index: 59
+    id: wire4
+    top_module: TopModule
+  - index: 60
+    id: m2014_q4k
+    top_module: TopModule
+  - index: 61
+    id: 2014_q4a
+    top_module: TopModule
+  - index: 62
+    id: bugs_mux2
+    top_module: TopModule
+  - index: 63
+    id: review2015_shiftcount
+    top_module: TopModule
+  - index: 64
+    id: vector3
+    top_module: TopModule
+  - index: 65
+    id: 7420
+    top_module: TopModule
+  - index: 66
+    id: edgecapture
+    top_module: TopModule
+  - index: 67
+    id: countslow
+    top_module: TopModule
+  - index: 68
+    id: countbcd
+    top_module: TopModule
+  - index: 69
+    id: truthtable1
+    top_module: TopModule
+  - index: 70
+    id: ece241_2013_q2
+    top_module: TopModule
+  - index: 71
+    id: always_casez
+    top_module: TopModule
+  - index: 72
+    id: thermostat
+    top_module: TopModule
+  - index: 73
+    id: dff16e
+    top_module: TopModule
+  - index: 74
+    id: ece241_2014_q4
+    top_module: TopModule
+  - index: 75
+    id: counter_2bc
+    top_module: TopModule
+  - index: 76
+    id: always_case
+    top_module: TopModule
+  - index: 77
+    id: wire_decl
+    top_module: TopModule
+  - index: 78
+    id: dualedge
+    top_module: TopModule
+  - index: 79
+    id: fsm3onehot
+    top_module: TopModule
+  - index: 80
+    id: timer
+    top_module: TopModule
+  - index: 81
+    id: 7458
+    top_module: TopModule
+  - index: 82
+    id: lfsr32
+    top_module: TopModule
+  - index: 83
+    id: mt2015_q4b
+    top_module: TopModule
+  - index: 84
+    id: ece241_2013_q12
+    top_module: TopModule
+  - index: 85
+    id: shift4
+    top_module: TopModule
+  - index: 86
+    id: lfsr5
+    top_module: TopModule
+  - index: 87
+    id: gates
+    top_module: TopModule
+  - index: 88
+    id: ece241_2014_q5b
+    top_module: TopModule
+  - index: 89
+    id: ece241_2014_q5a
+    top_module: TopModule
+  - index: 90
+    id: circuit1
+    top_module: TopModule
+  - index: 91
+    id: 2012_q2b
+    top_module: TopModule
+  - index: 92
+    id: gatesv100
+    top_module: TopModule
+  - index: 93
+    id: ece241_2014_q3
+    top_module: TopModule
+  - index: 94
+    id: gatesv
+    top_module: TopModule
+  - index: 95
+    id: review2015_fsmshift
+    top_module: TopModule
+  - index: 96
+    id: review2015_fsmseq
+    top_module: TopModule
+  - index: 97
+    id: mux9to1v
+    top_module: TopModule
+  - index: 98
+    id: circuit7
+    top_module: TopModule
+  - index: 99
+    id: m2014_q6c
+    top_module: TopModule
+  - index: 100
+    id: fsm3comb
+    top_module: TopModule
+  - index: 101
+    id: circuit4
+    top_module: TopModule
+  - index: 102
+    id: circuit3
+    top_module: TopModule
+  - index: 103
+    id: circuit2
+    top_module: TopModule
+  - index: 104
+    id: mt2015_muxdff
+    top_module: TopModule
+  - index: 105
+    id: rotate100
+    top_module: TopModule
+  - index: 106
+    id: always_nolatches
+    top_module: TopModule
+  - index: 107
+    id: fsm1s
+    top_module: TopModule
+  - index: 108
+    id: rule90
+    top_module: TopModule
+  - index: 109
+    id: fsm1
+    top_module: TopModule
+  - index: 110
+    id: fsm2
+    top_module: TopModule
+  - index: 111
+    id: fsm2s
+    top_module: TopModule
+  - index: 112
+    id: always_case2
+    top_module: TopModule
+  - index: 113
+    id: 2012_q1g
+    top_module: TopModule
+  - index: 114
+    id: bugs_case
+    top_module: TopModule
+  - index: 115
+    id: shift18
+    top_module: TopModule
+  - index: 116
+    id: m2014_q3
+    top_module: TopModule
+  - index: 117
+    id: circuit9
+    top_module: TopModule
+  - index: 118
+    id: history_shift
+    top_module: TopModule
+  - index: 119
+    id: fsm3
+    top_module: TopModule
+  - index: 120
+    id: fsm3s
+    top_module: TopModule
+  - index: 121
+    id: 2014_q3bfsm
+    top_module: TopModule
+  - index: 122
+    id: kmap4
+    top_module: TopModule
+  - index: 123
+    id: bugs_addsubz
+    top_module: TopModule
+  - index: 124
+    id: rule110
+    top_module: TopModule
+  - index: 125
+    id: kmap3
+    top_module: TopModule
+  - index: 126
+    id: circuit6
+    top_module: TopModule
+  - index: 127
+    id: lemmings1
+    top_module: TopModule
+  - index: 128
+    id: fsm_ps2
+    top_module: TopModule
+  - index: 129
+    id: ece241_2013_q8
+    top_module: TopModule
+  - index: 130
+    id: circuit5
+    top_module: TopModule
+  - index: 131
+    id: mt2015_q4
+    top_module: TopModule
+  - index: 132
+    id: always_if2
+    top_module: TopModule
+  - index: 133
+    id: 2014_q3fsm
+    top_module: TopModule
+  - index: 134
+    id: 2014_q3c
+    top_module: TopModule
+  - index: 135
+    id: m2014_q6b
+    top_module: TopModule
+  - index: 136
+    id: m2014_q6
+    top_module: TopModule
+  - index: 137
+    id: fsm_serial
+    top_module: TopModule
+  - index: 138
+    id: 2012_q2fsm
+    top_module: TopModule
+  - index: 139
+    id: 2013_q2bfsm
+    top_module: TopModule
+  - index: 140
+    id: fsm_hdlc
+    top_module: TopModule
+  - index: 141
+    id: count_clock
+    top_module: TopModule
+  - index: 142
+    id: lemmings2
+    top_module: TopModule
+  - index: 143
+    id: fsm_onehot
+    top_module: TopModule
+  - index: 144
+    id: conwaylife
+    top_module: TopModule
+  - index: 145
+    id: circuit8
+    top_module: TopModule
+  - index: 146
+    id: fsm_serialdata
+    top_module: TopModule
+  - index: 147
+    id: circuit10
+    top_module: TopModule
+  - index: 148
+    id: 2013_q2afsm
+    top_module: TopModule
+  - index: 149
+    id: ece241_2013_q4
+    top_module: TopModule
+  - index: 150
+    id: review2015_fsmonehot
+    top_module: TopModule
+  - index: 151
+    id: review2015_fsm
+    top_module: TopModule
+  - index: 152
+    id: lemmings3
+    top_module: TopModule
+  - index: 153
+    id: gshare
+    top_module: TopModule
+  - index: 154
+    id: fsm_ps2data
+    top_module: TopModule
+  - index: 155
+    id: lemmings4
+    top_module: TopModule
+  - index: 156
+    id: review2015_fancytimer
+    top_module: TopModule

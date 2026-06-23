@@ -36,7 +36,8 @@ description: >-
 
 1. 若使用者給 `VerilogEval #N` 或 id，**Agent 執行** `./scripts/prep_ve_problem.sh <N|id> --full-clean`
 2. 讀 run context 與 SPEC；輸出 `workflow-b-pipeline/rtl/TopModule.v`（top_module 固定為 `TopModule`）
-3. 含評測 / `with eval` 時：**執行** `./scripts/run_ve_sim.sh b <N>`；僅回報結果
+3. RTL 完成後 **Agent 執行** `./scripts/archive_ve_run.sh b`
+4. 含評測 / `with eval` 時：**執行** `./scripts/run_ve_sim.sh b <N>`；僅回報結果
 
 #### 通用規則
 

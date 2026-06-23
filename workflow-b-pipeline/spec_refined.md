@@ -1,120 +1,42 @@
-# Refined SPEC — adder_bcd (4-bit BCD Adder)
+# SPEC Refined — VerilogEval #1 (zero)
 
-## §1 Overview
+## §1 功能概述
 
-A 4-bit BCD (Binary-Coded Decimal) adder for decimal arithmetic. The module adds two BCD digits and a carry-in, produces a BCD-corrected sum digit and a carry-out. The circuit is **purely combinational** — no clock or sequential elements.
+模組 `TopModule` 的唯一功能是將其輸出埠 `zero` 恆定為邏輯低電位（LOW / `0`）。
 
-## §2 Interface
-
-### Ports
+## §2 介面
 
 | Port | Direction | Width | Description |
 |------|-----------|-------|-------------|
-| A    | Input     | [3:0] | First BCD digit (0–9). Values A–F (10–15) are allowed as inputs; behavior is defined in §Corner cases. |
-| B    | Input     | [3:0] | Second BCD digit (0–9). Values A–F (10–15) are allowed as inputs; behavior is defined in §Corner cases. |
-| Cin  | Input     | [1:0] | Carry-in (1-bit, value 0 or 1). |
-| Sum  | Output    | [3:0] | BCD-corrected sum digit (0–9), valid whenever inputs are stable. |
-| Cout | Output    | [1:0] | Carry-out (1-bit), asserted when the decimal sum ≥ 10. |
+| `zero` | output | 1 bit | 恆為 `0`（LOW） |
 
-### Port order (match testbench expectation)
+本模組無輸入埠、無 clock、無 reset。
 
-```
-adder_bcd(A, B, Cin, Sum, Cout);
-```
+## §3 功能行為
 
-No clock, no reset — this is a combinational module.
+- `zero` 在任何時刻的輸出值皆為 `1'b0`。
+- 不隨任何輸入變化（本模組無輸入）。
 
-## §3 Operation
+## §4 時序
 
-### 3.1 Binary addition
+本模組為**純組合邏輯**。無 clk 信號，無時序約束。
 
-```
-temp_sum = A + B + Cin;    // 5-bit result (0…19)
-```
+因 SPEC 未提及 clk 或 reset，本設計不含任何 sequential 元件。
 
-### 3.2 BCD correction
+## §5 邊界狀況（Corner cases）
 
-- If `temp_sum > 9` (i.e. `temp_sum >= 4'd10`):
-  - `Sum = (temp_sum + 4'd6) & 4'hF` (add 6, keep lower 4 bits)
-  - `Cout = 1'b1`
-- Else:
-  - `Sum = temp_sum[3:0]`
-  - `Cout = 1'b0`
+無。本模組僅含一條恆定 assign 敘述，無狀態、無計數器、無算術、無 FSM。
 
-### 3.3 Correction logic (testable)
+## §6 假設與決議
 
-| Condition                     | Sum output | Cout |
-|-------------------------------|------------|------|
-| `A + B + Cin <= 9`           | `A+B+Cin`  | 0    |
-| `A + B + Cin >= 10`          | `A+B+Cin+6` (lower 4 bits) | 1    |
+- `[ASSUMPTION]` 因 SPEC 僅指定一個輸出 `zero`，無輸入埠，故 `TopModule` 僅含此一個 output port。模組介面如 §2 所列。
 
-### 3.4 Boolean equations (informative)
+## §7 與原始 SPEC 差異
 
-```
-temp      = A + B + Cin;              // 5-bit
-Cout      = (temp > 4'd9);
-correction = (Cout) ? 4'd6 : 4'd0;
-Sum       = (temp + correction) [3:0];
-```
+無。原始 SPEC 已足夠明確。
 
-## §4 Timing
+## §8 待 Agent2 確認
 
-The module is **combinational** — all outputs settle within the propagation delay of the logic. There is no clock, no reset, no sequential element.
+- 確認純組合設計無需 stage 拆分。
 
-### 4.1 Latency
-
-- Pure combinational: outputs reflect inputs after logic gate delay (~1–2 ns in typical technology).
-- No pipelining; no register stages.
-
-### 4.2 No handshake interfaces
-
-The design has no valid/ready pairs. Outputs (Sum, Cout) are always valid when inputs are stable.
-
-## §5 Reset
-
-**Not applicable.** The module contains no sequential elements (flip-flops, registers, counters, FSMs). No reset signal is required or defined.
-
-[ASSUMPTION] The original SPEC does not mention a clock or reset. This module is purely combinational, therefore no reset is needed.
-
-## §6 Corner cases
-
-### 6.1 Invalid BCD inputs (A or B in range 10–15)
-
-The SPEC states A and B are "BCD inputs representing a digit 0–9", but the input ports are 4-bit wide (0–15). When A and/or B carry values 10–15:
-
-- **Binary addition is still performed** — the module does not clamp or detect invalid BCD digits.
-- Correction fires if `A + B + Cin ≥ 10`, which will be true for most invalid combinations.
-- **Example:** A = 4'd15 (1111), B = 4'd0, Cin = 0 → temp_sum = 15 → correction fires → Sum = (15 + 6) & 0xF = 5, Cout = 1.
-- The testbench may supply invalid BCD values; the module must produce consistent, deterministic outputs for all 256 × 2 = 512 input combinations.
-
-### 6.2 Maximum input sum
-
-A = 15, B = 15, Cin = 1 → temp_sum = 31 → Sum = (31 + 6) & 0xF = 1 (since 37 & 0xF = 5... wait, 37 mod 16 = 5), actually 37 & 0xF = 5, Cout = 1.
-
-Actually let me recalculate: 15 + 15 + 1 = 31. 31 + 6 = 37. 37 & 0xF = 5 (since 37 = 0x25, lower nibble = 5). Cout = 1.
-
-### 6.3 Carry-in when Cin > 1
-
-Cin is defined as 1-bit, so its value is always 0 or 1. No corner case.
-
-### 6.4 Overflow
-
-The Cout signal serves as the overflow indicator for BCD addition. When chaining multiple BCD adders, Cout of stage N feeds Cin of stage N+1. The module handles a full chain correctly since it is combinational.
-
-## §7 Assumptions and resolutions
-
-| # | Assumption | Resolution |
-|---|------------|------------|
-| 1 | Module is purely combinational (no clock, no reset). | Accepted. Original SPEC does not mention sequential elements. |
-| 2 | Input ports A and B may receive values beyond 0–9. | Accepted. The module performs add/correct on any 4-bit values; output may not be a valid BCD digit, but behavior is deterministic. |
-| 3 | Port order is `A, B, Cin, Sum, Cout` matching the original SPEC. | Accepted. Must not be reordered. |
-
-## §8 Diff vs original SPEC
-
-| Aspect | Original SPEC | Refined SPEC |
-|--------|---------------|--------------|
-| Ports   | Listed A, B, Cin, Sum, Cout | Same ports, widths confirmed; port order explicitly stated. |
-| Clock/Reset | Not mentioned | Explicitly stated: none (combinational). Added [ASSUMPTION]. |
-| BCD correction | "If sum exceeds 9, add 6" | Exact equation: `temp_sum + 6`, lower 4 bits. Also: Cout = (temp_sum > 9). |
-| Invalid inputs | Not discussed | §6 corner cases: deterministic behavior for A/B values 10–15. |
-| Testable conditions | None | §3.3 table: exact Sum and Cout for each condition. |
+Status: **READY for Agent2**

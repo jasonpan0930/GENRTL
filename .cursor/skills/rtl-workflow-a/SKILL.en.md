@@ -37,7 +37,8 @@ User may also say **`VerilogEval #1`** or **`zero`**; in that case top_module is
 1. If user gives `VerilogEval #N` or problem id, **Agent runs** `./scripts/prep_ve_problem.sh <N|id> --full-clean` in terminal
 2. Read `experiments/.run_context.json` and `spec/design.spec.txt`
 3. Top module is always `TopModule`; output `workflow-a-direct/rtl/TopModule.v`
-4. After RTL, if **with eval**: **run** `./scripts/run_ve_sim.sh a <N>`; report CSV outcome only
+4. After RTL, **Agent runs** `./scripts/archive_ve_run.sh a`
+5. After archive, if **with eval**: **run** `./scripts/run_ve_sim.sh a <N>`; report CSV outcome only
 
 #### Common rules
 

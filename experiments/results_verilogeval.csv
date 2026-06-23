@@ -1,0 +1,4 @@
+problem_index,problem_id,rtllm_path,top_module,workflow,model,skill,spec_path,rtl_path,rtl_archived,gen_status,vcs_compile,vcs_sim,sim_message,notes,updated_at
+9,popcount3,,TopModule,a,,rtl-workflow-a,,,,,skip,skip,no rtl to test,,2026-06-23T16:29:20Z
+1,zero,,TopModule,a,,rtl-workflow-a,spec/design.spec.txt,/home/jasonpan/final_genrtl/myProject_GENRTL/workflow-a-direct/rtl/TopModule.v,experiments/artifacts_verilogeval/zero/workflow_a/TopModule.v,archived,pass,pass,pass (no mismatches),archive_ve_run: no rtl file,2026-06-23T16:34:58Z
+1,zero,,TopModule,b,,rtl-pipeline-workflow-b,spec/design.spec.txt,/home/jasonpan/final_genrtl/myProject_GENRTL/workflow-b-pipeline/rtl/TopModule.v,experiments/artifacts_verilogeval/zero/workflow_b/TopModule.v,archived,pass,pass,pass (no mismatches),,2026-06-23T16:33:57Z

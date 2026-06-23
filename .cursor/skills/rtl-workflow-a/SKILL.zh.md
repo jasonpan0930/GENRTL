@@ -37,7 +37,8 @@ description: >-
 1. 若使用者給 `VerilogEval #N` 或題目 id，**Agent 在終端執行** `./scripts/prep_ve_problem.sh <N|id> --full-clean`
 2. 讀 `experiments/.run_context.json` 與 `spec/design.spec.txt`
 3. 頂層模組名固定為 `TopModule`；輸出 `workflow-a-direct/rtl/TopModule.v`
-4. RTL 完成後，若使用者說 **含評測** / `with eval`：**執行** `./scripts/run_ve_sim.sh a <N>`，僅回報 CSV 結果
+4. RTL 完成後 **Agent 執行** `./scripts/archive_ve_run.sh a`
+5. 若使用者說 **含評測** / `with eval`：**執行** `./scripts/run_ve_sim.sh a <N>`，僅回報 CSV 結果
 
 #### 通用規則
 

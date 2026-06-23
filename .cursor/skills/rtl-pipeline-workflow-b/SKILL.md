@@ -16,3 +16,5 @@ description: >-
 **Follow the language file that matches the user’s request** (or `*.zh.md` / `*.en.md` prompts). If unclear, prefer English for agent instructions; preserve SPEC language in refined docs.
 
 Timing plan format: [reference.zh.md](reference.zh.md) | [reference.en.md](reference.en.md)
+
+Domain knowledge (RTL conventions): `workflow-b-pipeline/domain_knowledge.md` | [domain_knowledge.en.md](../../workflow-b-pipeline/domain_knowledge.en.md)

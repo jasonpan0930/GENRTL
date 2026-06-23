@@ -1,6 +1,8 @@
 # 實驗紀錄
 
-每次比較 Workflow A / B，新增例如 `2026-05-25_run01.md`：
+**彙總表**：`experiments/results.csv`（由 `scripts/archive_run.sh` / `scripts/run_vcs.sh` 更新）
+
+每次比較 Workflow A / B，可另新增 `2026-05-25_run01.md`：
 
 ```markdown
 # Run 01 — 2026-05-25

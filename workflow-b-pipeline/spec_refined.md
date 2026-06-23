@@ -1,95 +1,120 @@
-# Refined Specification — 64-bit Pipelined Ripple-Carry Adder
+# Refined SPEC — adder_bcd (4-bit BCD Adder)
 
-## 1. Overview
+## §1 Overview
 
-Design a **64-bit ripple-carry adder** (`adder_pipe_64bit`) implemented as a **multi-stage pipeline**. Partial sums and inter-stage carries are computed in segmented ripple fashion; pipeline registers (clocked by `clk`, cleared by active-low `rst_n`) hold operands, partial results, carry bits, and a delayed enable chain. The final **65-bit** sum appears on `result` when `o_en` is asserted.
+A 4-bit BCD (Binary-Coded Decimal) adder for decimal arithmetic. The module adds two BCD digits and a carry-in, produces a BCD-corrected sum digit and a carry-out. The circuit is **purely combinational** — no clock or sequential elements.
 
-## 2. Interface (Ports)
+## §2 Interface
+
+### Ports
 
 | Port | Direction | Width | Description |
 |------|-----------|-------|-------------|
-| `clk` | input | 1 | Rising-edge clock for all sequential elements |
-| `rst_n` | input | 1 | Active-low asynchronous reset; when low, clears pipeline and deasserts `o_en` |
-| `i_en` | input | 1 | Launch enable: when high on a rising `clk` edge, accepts `adda`/`addb` into the pipeline |
-| `adda` | input | 64 | Operand A |
-| `addb` | input | 64 | Operand B |
-| `result` | output | 65 | `{carry_out, sum[63:0]}` of `adda + addb` |
-| `o_en` | output | 1 | High when `result` is valid for the operation launched by a prior `i_en` |
+| A    | Input     | [3:0] | First BCD digit (0–9). Values A–F (10–15) are allowed as inputs; behavior is defined in §Corner cases. |
+| B    | Input     | [3:0] | Second BCD digit (0–9). Values A–F (10–15) are allowed as inputs; behavior is defined in §Corner cases. |
+| Cin  | Input     | [1:0] | Carry-in (1-bit, value 0 or 1). |
+| Sum  | Output    | [3:0] | BCD-corrected sum digit (0–9), valid whenever inputs are stable. |
+| Cout | Output    | [1:0] | Carry-out (1-bit), asserted when the decimal sum ≥ 10. |
 
-**Module name**: `adder_pipe_64bit`
+### Port order (match testbench expectation)
 
-## 3. Functional requirements (testable items)
+```
+adder_bcd(A, B, Cin, Sum, Cout);
+```
 
-### 3.1 Reset
+No clock, no reset — this is a combinational module.
 
-- **R1**: When `rst_n` is low, on the next active clock edge (or asynchronously for registered outputs per implementation choice documented in timing plan), `o_en` shall be **0** and internal pipeline state shall be cleared so no stale valid is implied.
-- **R2**: When `rst_n` deasserts high, the module shall be idle until `i_en` launches an operation.
+## §3 Operation
 
-### 3.2 Launch (`i_en`)
+### 3.1 Binary addition
 
-- **R3**: When `i_en` is **1** at a rising edge of `clk` and `rst_n` is high, the module shall capture `adda` and `addb` presented in that cycle and start a pipelined addition.
-- **R4**: When `i_en` is **0**, the module shall **not** capture new operands at that edge; operations already in the pipeline shall continue to completion.
-- **R5**: `i_en` is assumed **one cycle wide** per launched operation (pulse). Holding `i_en` high for multiple consecutive cycles launches **independent** operations each cycle (throughput = 1 op/cycle after fill).
+```
+temp_sum = A + B + Cin;    // 5-bit result (0…19)
+```
 
-### 3.3 Addition semantics
+### 3.2 BCD correction
 
-- **R6**: For a launched operation, `result` shall equal unsigned `adda + addb` as a 65-bit value: `result[63:0]` is the sum bit vector; `result[64]` is the carry-out (MSB).
-- **R7**: Addition is **unsigned** binary ripple-carry across four **16-bit** segments (see §4).
+- If `temp_sum > 9` (i.e. `temp_sum >= 4'd10`):
+  - `Sum = (temp_sum + 4'd6) & 4'hF` (add 6, keep lower 4 bits)
+  - `Cout = 1'b1`
+- Else:
+  - `Sum = temp_sum[3:0]`
+  - `Cout = 1'b0`
 
-### 3.4 Output valid (`o_en`)
+### 3.3 Correction logic (testable)
 
-- **R8**: `o_en` shall be **1** on the cycle where the corresponding `result` for that operation is stable and reflects the sum of the captured operands.
-- **R9**: `o_en` shall be **0** when no completed result is presented (reset, idle, or between result epochs if applicable).
-- **R10**: `o_en` shall be delayed from the launching `i_en` by a fixed pipeline latency **L** cycles (see §4).
+| Condition                     | Sum output | Cout |
+|-------------------------------|------------|------|
+| `A + B + Cin <= 9`           | `A+B+Cin`  | 0    |
+| `A + B + Cin >= 10`          | `A+B+Cin+6` (lower 4 bits) | 1    |
 
-### 3.5 Operand timing
+### 3.4 Boolean equations (informative)
 
-- **R11**: `adda` and `addb` must be stable in the cycle where `i_en` is sampled high.
+```
+temp      = A + B + Cin;              // 5-bit
+Cout      = (temp > 4'd9);
+correction = (Cout) ? 4'd6 : 4'd0;
+Sum       = (temp + correction) [3:0];
+```
 
-## 4. Timing and performance
+## §4 Timing
 
-| Parameter | Value |
-|-----------|-------|
-| Pipeline depth | **4** stages (16-bit ripple segments) |
-| Latency **L** | **4** clock cycles from launch (`i_en` high) to `o_en` high with valid `result` |
-| Throughput (steady state) | One 64-bit add per clock after pipeline fill |
-| Clock | Single `clk`, rising-edge active |
-| Reset | `rst_n` active low |
+The module is **combinational** — all outputs settle within the propagation delay of the logic. There is no clock, no reset, no sequential element.
 
-**Segmentation (ripple between stages)**:
+### 4.1 Latency
 
-| Segment | Bit range | Receives carry from |
-|---------|-----------|---------------------|
-| 0 | [15:0] | 0 (implicit) |
-| 1 | [31:16] | segment 0 |
-| 2 | [47:32] | segment 1 |
-| 3 | [63:48] | segment 2; produces `result[64]` |
+- Pure combinational: outputs reflect inputs after logic gate delay (~1–2 ns in typical technology).
+- No pipelining; no register stages.
 
-## 5. Assumptions and resolutions
+### 4.2 No handshake interfaces
 
-- **[ASSUMPTION] A1**: Four pipeline stages of 16 bits each — original SPEC says "several" stages without a count; four is a standard partition for 64-bit datapaths.
-- **[ASSUMPTION] A2**: `i_en` is a one-cycle pulse per operation; continuous `i_en` launches back-to-back ops (pipelined valid on `o_en` tracks via enable shift register).
-- **[ASSUMPTION] A3**: Unsigned addition only; no subtraction or signed overflow flags.
-- **[ASSUMPTION] A4**: `rst_n` is asynchronous assert, synchronous deassert is acceptable for internal regs; outputs cleared while `rst_n` is low.
-- **[ASSUMPTION] A5**: No backpressure or stall; pipeline always accepts new ops when `i_en` is pulsed.
-- **[ASSUMPTION] A6**: `result` holds the last completed sum while `o_en` is high; when `o_en` is low, `result` value is don't-care for external use.
+The design has no valid/ready pairs. Outputs (Sum, Cout) are always valid when inputs are stable.
 
-## 6. Diff vs original SPEC
+## §5 Reset
 
-| Original | Refined |
-|----------|---------|
-| Vague "several" pipeline stages | Fixed **4** stages, **16** bits each |
-| No latency stated | **L = 4** cycles `i_en` → `o_en` |
-| No `i_en` pulse vs level behavior | **R4–R5**, **A2** |
-| No reset detail | **R1–R2**, **A4** |
-| No unsigned / bit ordering | **R6–R7**, `result[64]` = carry |
-| No operand stability rule | **R11** |
-| No throughput | Steady-state **1 op/cycle** after fill |
+**Not applicable.** The module contains no sequential elements (flip-flops, registers, counters, FSMs). No reset signal is required or defined.
 
-## 7. Open for Agent2
+[ASSUMPTION] The original SPEC does not mention a clock or reset. This module is purely combinational, therefore no reset is needed.
 
-1. **Stage typing**: Confirm each stage as `Sequential` (register segment sum + carry + operand upper slices) vs `Mixed` (combinational add within registered boundary).
-2. **Enable pipeline**: Exact width and tap for `o_en` (shift register depth = 4 aligned with data path).
-3. **Operand holding**: Whether full `adda`/`addb` are held in one input register for all segments or upper bits are forwarded stage-to-stage.
-4. **Reset timing**: Async vs sync reset on individual pipeline registers — pick one style for synthesizability and document per stage.
-5. **Bubble cycles**: Behavior of `o_en` when no launch for many cycles (should remain low).
+## §6 Corner cases
+
+### 6.1 Invalid BCD inputs (A or B in range 10–15)
+
+The SPEC states A and B are "BCD inputs representing a digit 0–9", but the input ports are 4-bit wide (0–15). When A and/or B carry values 10–15:
+
+- **Binary addition is still performed** — the module does not clamp or detect invalid BCD digits.
+- Correction fires if `A + B + Cin ≥ 10`, which will be true for most invalid combinations.
+- **Example:** A = 4'd15 (1111), B = 4'd0, Cin = 0 → temp_sum = 15 → correction fires → Sum = (15 + 6) & 0xF = 5, Cout = 1.
+- The testbench may supply invalid BCD values; the module must produce consistent, deterministic outputs for all 256 × 2 = 512 input combinations.
+
+### 6.2 Maximum input sum
+
+A = 15, B = 15, Cin = 1 → temp_sum = 31 → Sum = (31 + 6) & 0xF = 1 (since 37 & 0xF = 5... wait, 37 mod 16 = 5), actually 37 & 0xF = 5, Cout = 1.
+
+Actually let me recalculate: 15 + 15 + 1 = 31. 31 + 6 = 37. 37 & 0xF = 5 (since 37 = 0x25, lower nibble = 5). Cout = 1.
+
+### 6.3 Carry-in when Cin > 1
+
+Cin is defined as 1-bit, so its value is always 0 or 1. No corner case.
+
+### 6.4 Overflow
+
+The Cout signal serves as the overflow indicator for BCD addition. When chaining multiple BCD adders, Cout of stage N feeds Cin of stage N+1. The module handles a full chain correctly since it is combinational.
+
+## §7 Assumptions and resolutions
+
+| # | Assumption | Resolution |
+|---|------------|------------|
+| 1 | Module is purely combinational (no clock, no reset). | Accepted. Original SPEC does not mention sequential elements. |
+| 2 | Input ports A and B may receive values beyond 0–9. | Accepted. The module performs add/correct on any 4-bit values; output may not be a valid BCD digit, but behavior is deterministic. |
+| 3 | Port order is `A, B, Cin, Sum, Cout` matching the original SPEC. | Accepted. Must not be reordered. |
+
+## §8 Diff vs original SPEC
+
+| Aspect | Original SPEC | Refined SPEC |
+|--------|---------------|--------------|
+| Ports   | Listed A, B, Cin, Sum, Cout | Same ports, widths confirmed; port order explicitly stated. |
+| Clock/Reset | Not mentioned | Explicitly stated: none (combinational). Added [ASSUMPTION]. |
+| BCD correction | "If sum exceeds 9, add 6" | Exact equation: `temp_sum + 6`, lower 4 bits. Also: Cout = (temp_sum > 9). |
+| Invalid inputs | Not discussed | §6 corner cases: deterministic behavior for A/B values 10–15. |
+| Testable conditions | None | §3.3 table: exact Sum and Cout for each condition. |

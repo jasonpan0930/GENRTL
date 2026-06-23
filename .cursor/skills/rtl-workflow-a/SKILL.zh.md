@@ -15,7 +15,19 @@ description: >-
 
 使用者 **@rtl-workflow-a** 即執行本 skill。新對話、Pass@1：只生成一次，不讀仿真 log 迭代。
 
-可選補充：`SPEC 路徑為 spec/design.spec.txt`（或實際檔名）。
+### RTLLM 題號簡寫
+
+可說 **`RTLLM #6`** 或 **`adder_pipe_64bit`**。
+
+0. **任務開始時**，Agent 在終端先執行：`source ~/source.sh`（載入 VCS；我們的 `scripts/*.sh` 也會自動 source）
+1. 若使用者給 `RTLLM #N` 或題目 id，**Agent 在終端執行** `./scripts/prep_problem.sh <N|id>`
+2. 讀 `experiments/.run_context.json` 與 `spec/design.spec.txt`
+3. 頂層模組名 = `top_module`；輸出 `workflow-a-direct/rtl/<top_module>.v`
+4. RTL 完成後 **Agent 執行** `./scripts/archive_run.sh a`
+5. 若使用者說 **含評測** / `with eval`，或 RTLLM 批次實驗預設：**執行** `./scripts/run_vcs.sh a`，僅回報 CSV 結果
+6. **Pass@1**：禁止依 VCS log 修改 RTL；禁止讀 testbench／verified
+
+可選：`SPEC: spec/design.spec.txt` · `with eval`
 
 ## SPEC 讀取順序
 
@@ -57,5 +69,5 @@ spec/（唯讀）→ 實作 RTL → workflow-a-direct/rtl/*.v
 
 ## 回報
 
-SPEC 路徑、`.v` 與模組列表、假設。  
-**不要**執行 VCS；評測由使用者在生成後於 RTLLM 目錄進行。
+SPEC 路徑、`.v` 與模組列表、假設、`experiments/results.csv` 中本題 compile/sim 摘要。  
+**Pass@1**：不因 VCS 失敗而改 RTL（延伸實驗 Repair@k 另議）。

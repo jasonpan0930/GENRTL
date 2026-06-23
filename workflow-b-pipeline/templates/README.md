@@ -6,6 +6,11 @@ Agents **overwrite** canonical files in the parent folder:
 - `../timing_plan.md`
 - `../collaboration_log.md`
 
+**Not overwritten** (project conventions):
+
+- `../domain_knowledge.md` — RTL / planning rules for all agents; edit to add conventions
+- `../domain_knowledge.en.md` — English mirror
+
 | File | 中文 | English |
 |------|------|---------|
 | spec_refined | `spec_refined.template.zh.md` | `spec_refined.template.en.md` |

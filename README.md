@@ -46,6 +46,13 @@ During generation, agents must **not** read `RTLLM/`, `verified_*.v`, `testbench
 
 Remote: `git@github.com:jasonpan0930/GENRTL.git` (branch `main`)
 
-**Typical commit for a framework release:** `.cursor/`, `.cursorignore`, `README*`, `HANDOFF`, `prompts/`, `AGENTS*`, templates.
+## RTLLM batch (50 problems)
 
-**Per-run artifacts** (`spec/design.spec.txt`, `workflow-*/rtl/*.v`, filled `workflow-b-pipeline/*.md`) may be committed for reproducibility or kept local—document the run under `experiments/`.
+```bash
+./scripts/list_problems.sh          # index 1–50
+./scripts/prep_problem.sh 6         # setup SPEC for #6
+# Agent: @rtl-workflow-a RTLLM #6
+./scripts/archive_run.sh a && ./scripts/run_vcs.sh a
+```
+
+Results: **`experiments/results.csv`** · Details: [scripts/README.md](scripts/README.md)

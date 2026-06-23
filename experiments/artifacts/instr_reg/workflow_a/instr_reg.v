@@ -1,0 +1,33 @@
+// instr_reg
+// Instruction register: captures instructions and splits into fields.
+
+module instr_reg (
+    input        clk,       // clock
+    input        rst,       // active-low async reset
+    input  [1:0] fetch,     // source select: 1=reg, 2=RAM/ROM
+    input  [7:0] data,      // instruction data
+    output [2:0] ins,       // high 3 bits (opcode)
+    output [4:0] ad1,       // low 5 bits (register address)
+    output [7:0] ad2        // full 8-bit from second source
+);
+
+    reg [7:0] ins_p1;  // register 1
+    reg [7:0] ins_p2;  // register 2
+
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            ins_p1 <= 8'd0;
+            ins_p2 <= 8'd0;
+        end else begin
+            if (fetch == 2'b01)
+                ins_p1 <= data;
+            if (fetch == 2'b10)
+                ins_p2 <= data;
+        end
+    end
+
+    assign ins = ins_p1[7:5];
+    assign ad1 = ins_p1[4:0];
+    assign ad2 = ins_p2;
+
+endmodule

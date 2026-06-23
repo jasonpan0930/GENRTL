@@ -1,0 +1,129 @@
+\documentclass[aspectratio=169]{beamer}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usetheme{Madrid}
+\setbeamertemplate{navigation symbols}{}
+
+\title{GENRTL Progress Update}
+\subtitle{SPEC-to-RTL Workflow Comparison}
+\author{Jason Pan}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Project Goal}
+  \begin{itemize}
+    \item Compare two Cursor-Agent flows for hardware design:
+      \begin{itemize}
+        \item Workflow A: SPEC $\rightarrow$ Verilog RTL
+        \item Workflow B: SPEC $\rightarrow$ refine SPEC(agent1)$\rightarrow$ timing plan(agent2) $\rightarrow$ RTL(agent3)
+        \begin{figure}
+            \centering
+            \includegraphics[width=0.6\linewidth]{agent2_flowChart.png}
+            \label{fig:placeholder}
+        \end{figure}
+      \end{itemize}
+    \item Benchmark/evaluation target: RTLLM + VCS simulation
+    \item Fairness setting: Pass@1 (single generation, no testbench/log feedback during generation)
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Workflow B Roles (from SKILL.en.md)}
+\small
+
+\begin{columns}[t] % [t] 表示頂端對齊，可讓兩邊文字對齊更美觀
+  
+  % 左半邊：Agent1
+  \begin{column}{0.48\textwidth}
+    \textbf{Agent1 — Refine SPEC}
+    \vspace{0.2cm} % 稍微留點空隙
+    
+    \centering
+    \includegraphics[width=1\linewidth]{agent1.png}
+  \end{column}
+
+  % 右半邊：Agent2
+  \begin{column}{0.48\textwidth}
+    \textbf{Agent2 — Timing \& Structure}
+    \vspace{0.2cm}
+    
+    \centering
+    \includegraphics[width=1\linewidth]{agent2.png}
+  \end{column}
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}{What Has Been Built}
+  \begin{itemize}
+    \item Project skeleton and directory conventions completed
+    \item Cursor setup completed:
+      \begin{itemize}
+        \item Skills: \texttt{@rtl-workflow-a}, \texttt{@rtl-pipeline-workflow-b}
+        \item Rules for path constraints and Pass@1 fairness
+        \item \texttt{.cursorignore} to avoid indexing reference/golden RTL during generation
+      \end{itemize}
+    \item Docs updated: README/HANDOFF/AGENTS/prompts/spec/experiments templates
+  \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Repository Structure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{tree.png}
+    \label{fig:placeholder}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Current Experiment Status}
+  \begin{itemize}
+    \item Test case tried: \texttt{adder\_pipe\_64bit}
+    \item Workflow A and Workflow B both generated RTL outputs
+    \item VCS compile stage can complete
+    \item Functional simulation currently pass Workflow B only.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Next Steps}
+  \begin{itemize}
+    \item Run A/B across multiple RTLLM problems with same protocol
+    \item Record all runs in \texttt{experiments/}:
+      \begin{itemize}
+        \item model, skill used, SPEC path, VCS compile/sim result
+      \end{itemize}
+    \item Add batch evaluation script (\texttt{scripts/run\_vcs.sh}) and benchmark manifest
+    \item Compare WorkflowA and WorkflowB with other models in paper.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{References}
+\footnotesize
+\begin{thebibliography}{9}
+\bibitem{rtllm}
+Yao Lu, Shang Liu, Qijun Zhang, and Zhiyao Xie, \\
+\emph{RTLLM: An Open-Source Benchmark for Design RTL Generation with Large Language Model}, ASP-DAC 2024. \\
+\url{https://github.com/hkust-zhiyao/RTLLM}
+
+\bibitem{openllmrtl}
+Shang Liu, Yao Lu, Wenji Fang, Mengming Li, and Zhiyao Xie, \\
+\emph{OpenLLM-RTL: Open Dataset and Benchmark for LLM-Aided Design RTL Generation}, ICCAD 2024 (Invited).
+
+\bibitem{genrtlrepo}
+GENRTL Project Repository, \\
+\url{https://github.com/jasonpan0930/GENRTL}
+\end{thebibliography}
+\end{frame}
+
+
+\end{document}
+

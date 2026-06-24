@@ -1,42 +1,75 @@
-# Timing Plan — VerilogEval #1 (zero)
+# Timing & Structure Plan — gshare (VerilogEval #153)
 
-## Design Overview
+## 1. Overview
 
-- **Top module**: `TopModule`
-- **Type**: Purely combinational（純組合邏輯）
-- **Clock**: 無
-- **Reset**: 無
-- **Stages**: 0（無需管線分割）
+Single module with a 128-entry PHT (reg array), a 7-bit global history register, XOR-based index calculation, and saturating counter update logic.
 
-## Stage 0 — Combinational（單層組合邏輯）
+## 2. Hierarchy
 
-### Type: Combinational
+Single module: `TopModule`. No submodules.
 
-### Signals
+## 3. Stages
 
-| Signal | Width | Source | Description |
-|--------|-------|--------|-------------|
-| `zero` | 1 bit | 新宣告 (output) | 指派 `1'b0` |
+### Stage 0 — Global history register (Sequential)
 
-### Boolean / Logic
+**Clock**: posedge clk **or** posedge areset
 
-```
-zero = 1'b0
-```
+**Reset**: asynchronous active-high; history = 7'd0
 
-## Hierarchy
+**Register**: `history` (7-bit)
 
-```
-TopModule
-└── assign zero = 1'b0
-```
+**Update logic**:
+- `history <= {train_history[5:0], train_taken}` if train_valid
+- `history <= {history[5:0], predict_taken}` else if predict_valid
 
-## Collaboration Log
+### Stage 0 — PHT array (Sequential)
 
-### Round 1
+**Register**: `pht[0:127]` (each 2-bit)
 
-- **Status**: ALIGNED — `spec_refined.md` 已完整描述純組合邏輯，無需管線分割。
-- **Issue**: 無
-- **Resolution**: 無
+**Write** (at posedge clk):
+- If train_valid: update saturating counter at index `train_pc ^ train_history`
+  - train_taken=1 && ctr!=2'b11: ctr + 1
+  - train_taken=0 && ctr!=2'b00: ctr - 1
 
-**Status: ALIGNED → Agent3**
+### Stage 0 — Prediction read (Combinational)
+
+**Inputs**: predict_valid, predict_pc, history, pht
+
+**New declarations**:
+- `wire [6:0] pred_idx;`
+- `wire [1:0] pred_ctr;`
+
+**Equations**:
+- `pred_idx = predict_pc ^ history`
+- `pred_ctr = pht[pred_idx]`
+- `predict_taken = pred_ctr[1]` (MSB = taken when >= 2)
+- `predict_history = history`
+
+### Stage 0 — PHT write index (Combinational)
+
+**Index**: `train_idx = train_pc ^ train_history`
+
+## 4. Connectivity
+
+None (single module).
+
+## 5. FSM
+
+None — purely a predictor with register array, no FSM needed.
+
+## 6. Alignment checklist
+
+- [x] Ports: clk, areset, predict_valid, predict_pc[6:0], predict_taken, predict_history[6:0], train_valid, train_taken, train_mispredicted, train_history[6:0], train_pc[6:0]
+- [x] Port order matches original SPEC
+- [x] areset asynchronous active-high
+- [x] 7-bit global history register
+- [x] XOR-based index: pc ^ history
+- [x] 128 entries × 2-bit saturating counters
+- [x] Prediction: combinational read from PHT
+- [x] Training: sequential write to PHT
+- [x] Training precedence over prediction for history
+- [x] Saturating counter update rules
+
+## 7. Open items
+
+None.

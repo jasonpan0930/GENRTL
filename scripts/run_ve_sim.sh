@@ -121,7 +121,8 @@ trap "rm -rf $WORKDIR" EXIT
 
 cp "$RTL_SRC" "$WORKDIR/${TOP_MODULE}.v"
 cp "$REF_FILE" "$WORKDIR/ref_module.sv"
-cp "$TEST_FILE" "$WORKDIR/testbench.sv"
+# Extend testbench timeout from #1000000 to #3000000 (some testbenches need more sim time)
+sed 's/#1000000/#3000000/g' "$TEST_FILE" > "$WORKDIR/testbench.sv"
 cd "$WORKDIR"
 
 COMPILE=fail

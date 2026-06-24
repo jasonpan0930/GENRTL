@@ -1,83 +1,124 @@
-// Motor controller FSM
-// resetn: sync active-low. After reset: f=1 for 1 cycle.
-// Then detect x=1,0,1 → g=1.
-// Then if y=1 within 2 cycles → g=1 permanently; else g=0 permanently.
+// TopModule — 2013_q2bfsm (VerilogEval #139)
+// Ref: spec_refined.md §3, timing_plan.md Stage 0
 
 module TopModule (
-    input  wire       clk,
-    input  wire       resetn,
-    input  wire       x,
-    input  wire       y,
-    output reg        f,
-    output reg        g
+    input  clk,
+    input  resetn,
+    input  x,
+    input  y,
+    output reg f,
+    output reg g
 );
 
-    localparam A      = 4'd0;  // idle, wait for resetn=1
-    localparam F1     = 4'd1;  // f=1 pulse
-    localparam X1     = 4'd2;  // look for x=1
-    localparam X2     = 4'd3;  // saw 1, look for 0
-    localparam X3     = 4'd4;  // saw 10, look for 1
-    localparam G1     = 4'd5;  // g=1, check y (1st cycle)
-    localparam G2     = 4'd6;  // g=1, check y (2nd cycle)
-    localparam G_PERM = 4'd7;  // g=1 permanently
-    localparam G_FAIL = 4'd8;  // g=0 permanently
+    // FSM state encoding
+    localparam A      = 4'd0,
+               S_F    = 4'd1,
+               S_X0   = 4'd2,
+               S_X1   = 4'd3,
+               S_X2   = 4'd4,
+               S_G0   = 4'd5,
+               S_G1   = 4'd6,
+               G_PERM = 4'd7,
+               G_ZERO = 4'd8;
 
+    // Stage 0 — State register
     reg [3:0] state;
 
-    always @(posedge clk) begin
+    // Stage 0 — Next-state and output combinational logic
+    reg [3:0] nstate;
+    reg       f_next;
+    reg       g_next;
+
+    always @(*) begin
+        nstate = A;
+        f_next = 1'b0;
+        g_next = 1'b0;
+
         if (!resetn) begin
-            state <= A;
-            f <= 1'b0;
-            g <= 1'b0;
+            nstate = A;
+            f_next = 1'b0;
+            g_next = 1'b0;
         end else begin
             case (state)
                 A: begin
-                    f <= 1'b0;
-                    g <= 1'b0;
-                    state <= F1;
+                    nstate = S_F;
+                    f_next = 1'b0;
+                    g_next = 1'b0;
                 end
-
-                F1: begin
-                    f <= 1'b1;
-                    state <= X1;
+                S_F: begin
+                    nstate = S_X0;
+                    f_next = 1'b1;
+                    g_next = 1'b0;
                 end
-
-                X1: begin
-                    f <= 1'b0;
-                    if (x) state <= X2;
+                S_X0: begin
+                    if (x)
+                        nstate = S_X1;
+                    else
+                        nstate = S_X0;
+                    f_next = 1'b0;
+                    g_next = 1'b0;
                 end
-
-                X2: begin
-                    if (x) state <= X2;      // still looking for 0
-                    else   state <= X3;
+                S_X1: begin
+                    if (x)
+                        nstate = S_X1;
+                    else
+                        nstate = S_X2;
+                    f_next = 1'b0;
+                    g_next = 1'b0;
                 end
-
-                X3: begin
-                    if (x) state <= G1;      // 101 pattern matched!
-                    else   state <= X1;      // pattern broken
+                S_X2: begin
+                    if (x)
+                        nstate = S_G0;
+                    else
+                        nstate = S_X0;
+                    f_next = 1'b0;
+                    g_next = 1'b0;
                 end
-
-                G1: begin
-                    g <= 1'b1;
-                    if (y) state <= G_PERM;
-                    else   state <= G2;
+                S_G0: begin
+                    f_next = 1'b0;
+                    g_next = 1'b1;
+                    if (y)
+                        nstate = G_PERM;
+                    else
+                        nstate = S_G1;
                 end
-
-                G2: begin
-                    if (y) state <= G_PERM;
-                    else   state <= G_FAIL;
+                S_G1: begin
+                    f_next = 1'b0;
+                    g_next = 1'b1;
+                    if (y)
+                        nstate = G_PERM;
+                    else
+                        nstate = G_ZERO;
                 end
-
                 G_PERM: begin
-                    g <= 1'b1;  // sticky
+                    nstate = G_PERM;
+                    f_next = 1'b0;
+                    g_next = 1'b1;
                 end
-
-                G_FAIL: begin
-                    g <= 1'b0;  // sticky
+                G_ZERO: begin
+                    nstate = G_ZERO;
+                    f_next = 1'b0;
+                    g_next = 1'b0;
                 end
-
-                default: state <= A;
+                default: begin
+                    nstate = A;
+                    f_next = 1'b0;
+                    g_next = 1'b0;
+                end
             endcase
+        end
+    end
+
+    // Stage 0 — Sequential updates
+    always @(posedge clk) begin
+        if (!resetn) begin
+            state <= A;
+            f     <= 1'b0;
+            g     <= 1'b0;
+        end else begin
+            state <= nstate;
+            f     <= f_next;
+            g     <= g_next;
         end
     end
 

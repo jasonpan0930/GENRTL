@@ -1,127 +1,75 @@
-// count_clock (VerilogEval #141)
-// TopModule: 12-hour clock with AM/PM, BCD counters for hh/mm/ss
-// All sequential logic on posedge clk, synchronous active-high reset
+// TopModule — count_clock (VerilogEval #141)
+// Ref: spec_refined.md §3, timing_plan.md Stage 0
 
 module TopModule (
-    input  clk,
-    input  reset,
-    input  ena,
-    output pm,
-    output [7:0] hh,
-    output [7:0] mm,
-    output [7:0] ss
+    input        clk,
+    input        reset,
+    input        ena,
+    output reg   pm,
+    output reg [7:0] hh,
+    output reg [7:0] mm,
+    output reg [7:0] ss
 );
 
-    // BCD digit registers
-    reg [3:0] ss_ones;
-    reg [3:0] ss_tens;
-    reg [3:0] mm_ones;
-    reg [3:0] mm_tens;
-    reg [3:0] hh_ones;
-    reg [3:0] hh_tens;
-    reg pm_reg;
+    // Overflow flags (combinational)
+    wire ss_overflow;
+    wire mm_overflow;
 
-    // Next state values
-    reg [3:0] ss_ones_nxt;
-    reg [3:0] ss_tens_nxt;
-    reg [3:0] mm_ones_nxt;
-    reg [3:0] mm_tens_nxt;
-    reg [3:0] hh_ones_nxt;
-    reg [3:0] hh_tens_nxt;
-    reg pm_nxt;
+    assign ss_overflow = ena && (ss == 8'h59);
+    assign mm_overflow = ss_overflow && (mm == 8'h59);
 
-    // Intermediate carry signals
-    wire ss_carry;
-    wire mm_carry;
-    wire is_12_59_59;
-
-    assign ss_carry = ena && (ss_ones == 4'd9) && (ss_tens == 4'd5);
-    assign mm_carry = ss_carry && (mm_ones == 4'd9) && (mm_tens == 4'd5);
-    assign is_12_59_59 = mm_carry && (hh_tens == 4'd1) && (hh_ones == 4'd2);
-
-    // Sequential block
+    // Stage 0 — ss counter (Sequential)
     always @(posedge clk) begin
         if (reset) begin
-            ss_ones <= 4'd0;
-            ss_tens <= 4'd0;
-            mm_ones <= 4'd0;
-            mm_tens <= 4'd0;
-            hh_ones <= 4'd2;
-            hh_tens <= 4'd1;
-            pm_reg  <= 1'd0;
-        end else begin
-            ss_ones <= ss_ones_nxt;
-            ss_tens <= ss_tens_nxt;
-            mm_ones <= mm_ones_nxt;
-            mm_tens <= mm_tens_nxt;
-            hh_ones <= hh_ones_nxt;
-            hh_tens <= hh_tens_nxt;
-            pm_reg  <= pm_nxt;
-        end
-    end
-
-    // Seconds next logic
-    always @(*) begin
-        if (ena && ss_ones == 4'd9) begin
-            ss_ones_nxt = 4'd0;
-            ss_tens_nxt = (ss_tens == 4'd5) ? 4'd0 : (ss_tens + 4'd1);
+            ss <= 8'h00;
         end else if (ena) begin
-            ss_ones_nxt = ss_ones + 4'd1;
-            ss_tens_nxt = ss_tens;
-        end else begin
-            ss_ones_nxt = ss_ones;
-            ss_tens_nxt = ss_tens;
-        end
-    end
-
-    // Minutes next logic
-    always @(*) begin
-        if (ss_carry && mm_ones == 4'd9) begin
-            mm_ones_nxt = 4'd0;
-            mm_tens_nxt = (mm_tens == 4'd5) ? 4'd0 : (mm_tens + 4'd1);
-        end else if (ss_carry) begin
-            mm_ones_nxt = mm_ones + 4'd1;
-            mm_tens_nxt = mm_tens;
-        end else begin
-            mm_ones_nxt = mm_ones;
-            mm_tens_nxt = mm_tens;
-        end
-    end
-
-    // Hours next logic (12-hour BCD: 01-12)
-    always @(*) begin
-        if (mm_carry) begin
-            if (is_12_59_59) begin
-                // 12:59:59 -> 01:00:00
-                hh_ones_nxt = 4'd1;
-                hh_tens_nxt = 4'd0;
-            end else if (hh_ones == 4'd9) begin
-                // 09 -> 10
-                hh_ones_nxt = 4'd0;
-                hh_tens_nxt = hh_tens + 4'd1;
+            if (ss[3:0] == 4'd9) begin
+                ss[3:0] <= 4'd0;
+                if (ss[7:4] == 4'd5)
+                    ss[7:4] <= 4'd0;
+                else
+                    ss[7:4] <= ss[7:4] + 4'd1;
             end else begin
-                // Normal increment
-                hh_ones_nxt = hh_ones + 4'd1;
-                hh_tens_nxt = hh_tens;
+                ss[3:0] <= ss[3:0] + 4'd1;
             end
-        end else begin
-            hh_ones_nxt = hh_ones;
-            hh_tens_nxt = hh_tens;
         end
     end
 
-    // PM next logic: toggle when 11:59:59 -> 12:00:00
-    always @(*) begin
-        if (mm_carry && (hh_tens == 4'd1) && (hh_ones == 4'd1))
-            pm_nxt = ~pm_reg;
-        else
-            pm_nxt = pm_reg;
+    // Stage 0 — mm counter (Sequential)
+    always @(posedge clk) begin
+        if (reset) begin
+            mm <= 8'h00;
+        end else if (ss_overflow) begin
+            if (mm[3:0] == 4'd9) begin
+                mm[3:0] <= 4'd0;
+                if (mm[7:4] == 4'd5)
+                    mm[7:4] <= 4'd0;
+                else
+                    mm[7:4] <= mm[7:4] + 4'd1;
+            end else begin
+                mm[3:0] <= mm[3:0] + 4'd1;
+            end
+        end
     end
 
-    // Output assignments
-    assign ss = {ss_tens, ss_ones};
-    assign mm = {mm_tens, mm_ones};
-    assign hh = {hh_tens, hh_ones};
-    assign pm = pm_reg;
+    // Stage 0 — hh counter and pm (Sequential)
+    always @(posedge clk) begin
+        if (reset) begin
+            hh <= 8'h12;
+            pm <= 1'b0;
+        end else if (mm_overflow) begin
+            if (hh == 8'h12) begin
+                hh <= 8'h01;
+                pm <= ~pm;
+            end else begin
+                if (hh[3:0] == 4'd9) begin
+                    hh[3:0] <= 4'd0;
+                    hh[7:4] <= hh[7:4] + 4'd1;
+                end else begin
+                    hh[3:0] <= hh[3:0] + 4'd1;
+                end
+            end
+        end
+    end
 
 endmodule

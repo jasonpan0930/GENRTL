@@ -1,67 +1,83 @@
-// FSM: monitor w in 3-cycle windows after s=1
-// z=1 if w=1 in exactly 2 of 3 cycles
+// TopModule — 2014_q3fsm (VerilogEval #133)
+// Ref: spec_refined.md §3, timing_plan.md Stage 0
 
 module TopModule (
-    input  wire clk,
-    input  wire reset,
-    input  wire s,
-    input  wire w,
-    output wire z
+    input  clk,
+    input  reset,
+    input  s,
+    input  w,
+    output reg z
 );
 
-    localparam A  = 3'b000;
-    localparam B1 = 3'b001;  // 1st cycle examining w
-    localparam B2 = 3'b010;  // 2nd cycle examining w
-    localparam B3 = 3'b011;  // 3rd cycle + evaluate
-    localparam Z1 = 3'b100;  // z=1 result
-    localparam Z0 = 3'b101;  // z=0 result
+    // FSM state encoding
+    localparam A  = 3'b000,
+               B0 = 3'b001,
+               B1 = 3'b010,
+               B2 = 3'b011,
+               B3 = 3'b100;
 
+    // Stage 0 — State register and counter
     reg [2:0] state;
-    reg w1, w2;
+    reg [1:0] cnt;
 
-    assign z = (state == Z1);
+    // Stage 0 — Next-state combinational logic
+    reg [2:0] nstate;
+    reg [1:0] cnt_next;
+    reg       z_next;
 
+    always @(*) begin
+        nstate = A;
+        cnt_next = cnt;
+        z_next = 1'b0;
+
+        case (state)
+            A: begin
+                if (reset)
+                    nstate = A;
+                else if (s)
+                    nstate = B0;
+                else
+                    nstate = A;
+                z_next = 1'b0;
+            end
+            B0: begin
+                nstate = B1;
+                cnt_next = w ? 2'd1 : 2'd0;
+                z_next = 1'b0;
+            end
+            B1: begin
+                nstate = B2;
+                cnt_next = cnt + (w ? 2'd1 : 2'd0);
+                z_next = 1'b0;
+            end
+            B2: begin
+                nstate = B3;
+                cnt_next = cnt + (w ? 2'd1 : 2'd0);
+                z_next = 1'b0;
+            end
+            B3: begin
+                nstate = B0;
+                cnt_next = cnt;
+                z_next = (cnt == 2'd2) ? 1'b1 : 1'b0;
+            end
+            default: begin
+                nstate = A;
+                cnt_next = 2'd0;
+                z_next = 1'b0;
+            end
+        endcase
+    end
+
+    // Stage 0 — Sequential updates
     always @(posedge clk) begin
         if (reset) begin
             state <= A;
+            cnt   <= 2'd0;
+            z     <= 1'b0;
         end else begin
-            case (state)
-                A: begin
-                    if (s) begin
-                        state <= B1;
-                        w1    <= w;  // 1st sample (at entry to B)
-                    end
-                end
-
-                B1: begin
-                    w2    <= w;       // 2nd sample
-                    state <= B2;
-                end
-
-                B2: begin
-                    state <= B3;
-                    // 3rd sample w is the current input at B3
-                end
-
-                B3: begin
-                    if (w1 + w2 + w == 2'd2)
-                        state <= Z1;
-                    else
-                        state <= Z0;
-                end
-
-                Z1: begin
-                    state <= B1;
-                    w1    <= w;       // 1st sample of next window
-                end
-
-                Z0: begin
-                    state <= B1;
-                    w1    <= w;       // 1st sample of next window
-                end
-
-                default: state <= A;
-            endcase
+            state <= nstate;
+            cnt   <= cnt_next;
+            z     <= z_next;
         end
     end
 

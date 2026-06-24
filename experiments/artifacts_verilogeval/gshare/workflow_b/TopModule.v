@@ -1,54 +1,58 @@
-// gshare (VerilogEval #153)
-// TopModule: Gshare branch predictor, 7-bit PC+history, 128-entry 2-bit saturating counter PHT
-// Asynchronous active-high reset, positive-edge clock
+// TopModule — gshare branch predictor (VerilogEval #153)
+// Ref: spec_refined.md §3, timing_plan.md Stage 0
 
 module TopModule (
-    input        clk,
-    input        areset,
+    input         clk,
+    input         areset,
 
-    input        predict_valid,
-    input  [6:0] predict_pc,
-    output       predict_taken,
-    output [6:0] predict_history,
+    // Prediction interface
+    input         predict_valid,
+    input  [6:0]  predict_pc,
+    output        predict_taken,
+    output [6:0]  predict_history,
 
-    input        train_valid,
-    input        train_taken,
-    input        train_mispredicted,
-    input  [6:0] train_history,
-    input  [6:0] train_pc
+    // Training interface
+    input         train_valid,
+    input         train_taken,
+    input         train_mispredicted,
+    input  [6:0]  train_history,
+    input  [6:0]  train_pc
 );
 
-    // Internal state
-    reg [6:0] global_history;
+    // Stage 0 — Global history register (Sequential, with async reset)
+    reg [6:0] history;
+
+    always @(posedge clk or posedge areset) begin
+        if (areset)
+            history <= 7'd0;
+        else if (train_valid)
+            history <= {train_history[5:0], train_taken};
+        else if (predict_valid)
+            history <= {history[5:0], predict_taken};
+    end
+
+    // Stage 0 — PHT: 128 entries x 2-bit saturating counters
     reg [1:0] pht [0:127];
 
-    // Combinational: prediction index and taken
-    wire [6:0] predict_idx = predict_pc ^ global_history;
-    assign predict_taken = (pht[predict_idx] >= 2'd2);
-    assign predict_history = global_history;
+    // PHT read index for prediction (combinational)
+    wire [6:0] pred_idx = predict_pc ^ history;
+    wire [1:0] pred_ctr = pht[pred_idx];
 
-    // Combinational: training index
+    // Prediction outputs (combinational)
+    assign predict_taken    = (predict_valid) ? pred_ctr[1] : 1'b0;
+    assign predict_history  = (predict_valid) ? history : 7'd0;
+
+    // PHT write index for training
     wire [6:0] train_idx = train_pc ^ train_history;
 
-    // Sequential
-    integer i;
-    always @(posedge clk or posedge areset) begin
-        if (areset) begin
-            global_history <= 7'd0;
-            for (i = 0; i < 128; i = i + 1)
-                pht[i] <= 2'd2;
-        end else begin
-            // History update: training takes precedence
-            if (train_valid && train_mispredicted)
-                global_history <= {train_history[5:0], train_taken};
-            else if (predict_valid)
-                global_history <= {global_history[5:0], predict_taken};
-
-            // PHT update on training
-            if (train_valid) begin
-                if (train_taken && (pht[train_idx] < 2'd3))
+    // Stage 0 — PHT update (Sequential, at clock edge)
+    always @(posedge clk) begin
+        if (train_valid) begin
+            if (train_taken) begin
+                if (pht[train_idx] != 2'b11)
                     pht[train_idx] <= pht[train_idx] + 2'd1;
-                else if (!train_taken && (pht[train_idx] > 2'd0))
+            end else begin
+                if (pht[train_idx] != 2'b00)
                     pht[train_idx] <= pht[train_idx] - 2'd1;
             end
         end

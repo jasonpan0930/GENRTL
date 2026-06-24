@@ -1,22 +1,25 @@
 Please act as a professional verilog designer.
 
-Implement a module of a 4-bit BCD adder for decimal arithmetic operations. 
+Module name: 
+    barrel_shifter
 
-Module name:  
-    adder_bcd               
+Function:
+    A barrel shifter for rotating bits efficiently. This 8-bit barrel shifter takes an 8-bit input and shifts or rotates the bits based on a 3-bit control signal.
+
 Input ports:
-    A [3:0]: First BCD input (4-bit, representing a decimal digit from 0 to 9).
-    B [3:0]: Second BCD input (4-bit, representing a decimal digit from 0 to 9).
-    Cin: Carry-in input (1-bit).
+    in [7:0]: 8-bit input to be shifted.
+    ctrl [2:0]: 3-bit control signal that determines how many positions to shift. The control signal specifies the amount of shift, where each bit indicates a shift by 1, 2, or 4 positions.
+
 Output ports:
-    Sum [3:0]: 4-bit output representing the sum of the two BCD inputs, corrected to be a valid BCD digit (0–9).
-    Cout: Carry-out output (1-bit), used when the sum exceeds the decimal value of 9.
+    out [7:0]: 8-bit shifted output.
 
 Implementation:
-Addition: The module performs binary addition of A, B, and Cin.
-BCD Correction: If the sum exceeds 9 (binary 1001), a correction of 6 (binary 0110) is added to the sum. This correction ensures that the result is within the BCD range.
-Carry Generation: If the result of the addition exceeds 9, a carry-out (Cout) is generated, signaling that the BCD sum exceeds a single decimal digit.
+    The barrel shifter shifts the input `in` based on the value of the `ctrl` signal. The shifting happens in stages, where each stage shifts by 4, 2, or 1 position, as controlled by `ctrl[2]`, `ctrl[1]`, and `ctrl[0]`, respectively.
+    The shifts are achieved using a series of 2-to-1 multiplexers (`mux2X1`) that select between the shifted input and the original input. Each stage of multiplexers performs the shift, and the result is passed to the next stage for further shifting if required.
+    - When `ctrl[2]` is high, the input is shifted by 4 positions.
+    - When `ctrl[1]` is high, the intermediate result is shifted by 2 positions.
+    - When `ctrl[0]` is high, the intermediate result is shifted by 1 position.
+    
+    The `mux2X1` submodule is used to select between two input values based on the `sel` signal, determining which bit is used in the shifted output at each stage.
 
 Give me the complete code.
- 
-

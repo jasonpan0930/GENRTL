@@ -1,166 +1,153 @@
-//==============================================================================
-// Module      : asyn_fifo
-// Description : Asynchronous (dual-clock) FIFO with configurable width and
-//               depth. Write and read clocks are independent. Uses dual-port
-//               RAM + Gray-code pointer crossing + two-stage synchronizers.
-// Spec        : spec_refined.md
-// Timing Plan : timing_plan.md (Stage 0–3)
-//==============================================================================
+// ============================================================================
+// asyn_fifo — Asynchronous FIFO with configurable DEPTH and WIDTH
+// ============================================================================
+// Pipeline: Workflow B (Agent1→2→3)
+// Stages: W0 (write counter), W1 (Gray conv), W2 (read-ptr sync),
+//         W3 (full detect), R0 (read counter), R1 (Gray conv),
+//         R2 (write-ptr sync), R3 (empty detect), M0 (dual_port_RAM)
+// ============================================================================
 
 module asyn_fifo #(
-    parameter WIDTH = 8,
-    parameter DEPTH = 16
+    parameter DEPTH = 16,
+    parameter WIDTH = 8
 ) (
-    // Port order MUST match testbench positional mapping:
-    // wclk, rclk, wrstn, rrstn, winc, rinc, wdata, wfull, rempty, rdata
-    input  wire                wclk,
-    input  wire                rclk,
-    input  wire                wrstn,   // active-low reset, write domain
-    input  wire                rrstn,   // active-low reset, read domain
-    input  wire                winc,    // write increment
-    input  wire                rinc,    // read increment
-    input  wire [WIDTH-1:0]    wdata,   // write data
-    output wire                wfull,   // FIFO full flag
-    output wire                rempty,  // FIFO empty flag
-    output wire [WIDTH-1:0]    rdata    // read data
+    input  wire             wclk,
+    input  wire             rclk,
+    input  wire             wrstn,
+    input  wire             rrstn,
+    input  wire             winc,
+    input  wire             rinc,
+    input  wire [WIDTH-1:0] wdata,
+    output wire             wfull,
+    output wire             rempty,
+    output wire [WIDTH-1:0] rdata
 );
 
     // -----------------------------------------------------------------------
-    // Localparams (spec_refined §4.8)
+    // Local parameters
     // -----------------------------------------------------------------------
-    localparam C_PTR_W = $clog2(DEPTH) + 1;  // pointer width (incl. MSB)
-    localparam C_ADDR_W = $clog2(DEPTH);     // RAM address width
-    localparam W_MSB = C_PTR_W - 1;          // MSB index of pointer
+    localparam ADDR_W = $clog2(DEPTH);            // RAM address width
+    localparam PTR_W  = $clog2(DEPTH) + 1;        // Pointer width (extra MSB for full/empty)
 
-    // =======================================================================
-    // Internal wire / reg declarations (domain_knowledge §1 — declare before
-    // any assign / always / instance)
-    // =======================================================================
+    // -----------------------------------------------------------------------
+    // Internal signals — declared before use (domain_knowledge §1)
+    // -----------------------------------------------------------------------
 
-    // --- Write-domain registers (Stage 1 — timing_plan §3 Stage 1) ---------
-    reg [C_PTR_W-1:0] waddr_bin;     // binary write pointer
-    reg [C_PTR_W-1:0] wptr;          // registered Gray-coded write pointer
-    reg [C_PTR_W-1:0] rptr_buff;     // synchronizer stage 1 (read ptr in)
-    reg [C_PTR_W-1:0] rptr_syn;      // synchronizer stage 2 (synced read ptr)
+    // Write domain (wclk)
+    reg  [PTR_W-1:0] wbin;                        // Stage W0 — binary write pointer
+    wire [PTR_W-1:0] wbin_next;                   // Stage W0 — next write pointer value
+    wire [PTR_W-1:0] wptr;                        // Stage W1 — Gray-coded write pointer
+    reg  [PTR_W-1:0] rptr_syn1, rptr_syn;         // Stage W2 — read-pointer synchronizer
+    wire             wfull_int;                   // Stage W3 — full flag (internal)
+    wire             wenc;                        // RAM write enable (gated)
 
-    // --- Write-domain combinational wires (Stage 0 — timing_plan §3 Stage 0)
-    wire [C_PTR_W-1:0] waddr_bin_next;  // next binary write pointer value
-    wire [C_PTR_W-1:0] wptr_comb;       // combinational Gray-coded wptr
-    wire                wenc;            // write enable to dual_port_RAM
-    wire [C_ADDR_W-1:0] waddr;          // RAM write address
+    // Read domain (rclk)
+    reg  [PTR_W-1:0] rbin;                        // Stage R0 — binary read pointer
+    wire [PTR_W-1:0] rbin_next;                   // Stage R0 — next read pointer value
+    wire [PTR_W-1:0] rptr;                        // Stage R1 — Gray-coded read pointer
+    reg  [PTR_W-1:0] wptr_syn1, wptr_syn;         // Stage R2 — write-pointer synchronizer
+    wire             rempty_int;                  // Stage R3 — empty flag (internal)
+    wire             renc;                        // RAM read enable (gated)
 
-    // --- Read-domain registers (Stage 3 — timing_plan §3 Stage 3) ----------
-    reg [C_PTR_W-1:0] raddr_bin;     // binary read pointer
-    reg [C_PTR_W-1:0] rptr;          // registered Gray-coded read pointer
-    reg [C_PTR_W-1:0] wptr_buff;     // synchronizer stage 1 (write ptr in)
-    reg [C_PTR_W-1:0] wptr_syn;      // synchronizer stage 2 (synced write ptr)
+    // RAM connections
+    wire [ADDR_W-1:0] waddr;                      // RAM write address
+    wire [ADDR_W-1:0] raddr;                      // RAM read address
 
-    // --- Read-domain combinational wires (Stage 2 — timing_plan §3 Stage 2)
-    wire [C_PTR_W-1:0] raddr_bin_next;  // next binary read pointer value
-    wire [C_PTR_W-1:0] rptr_comb;       // combinational Gray-coded rptr
-    wire                renc;            // read enable to dual_port_RAM
-    wire [C_ADDR_W-1:0] raddr;          // RAM read address
-
-    // =======================================================================
-    // Combinational logic — Write domain  (timing_plan Stage 0)
-    // =======================================================================
-
-    // §4.2 — write-pointer increment (mux)
-    // spec_refined §4.2: waddr_bin <= waddr_bin + 1 when winc & !wfull
-    assign waddr_bin_next = (winc & ~wfull) ? (waddr_bin + 1'b1) : waddr_bin;
-
-    // §4.2 — binary to Gray conversion (uses next-pointer for registered
-    // output, ensuring wptr always matches the registered waddr_bin)
-    assign wptr_comb = waddr_bin_next ^ (waddr_bin_next >> 1);
-
-    // §4.7 — full flag (combinational, uses registered wptr and rptr_syn)
-    // spec_refined §4.7: MSBs opposite, lower bits equal → full
-    assign wfull = (wptr[W_MSB]   != rptr_syn[W_MSB])
-                && (wptr[W_MSB-1] != rptr_syn[W_MSB-1])
-                && (wptr[W_MSB-2:0] == rptr_syn[W_MSB-2:0]);
-
-    // §4.2 — write-enable gating
-    // spec_refined §5.1: wenc = winc & !wfull
-    assign wenc = winc & ~wfull;
-
-    // §4.1 — RAM write address = lower C_ADDR_W bits of binary pointer
-    assign waddr = waddr_bin[C_ADDR_W-1:0];
-
-    // =======================================================================
-    // Combinational logic — Read domain   (timing_plan Stage 2)
-    // =======================================================================
-
-    // §4.3 — read-pointer increment (mux)
-    // spec_refined §4.3: raddr_bin <= raddr_bin + 1 when rinc & !rempty
-    assign raddr_bin_next = (rinc & ~rempty) ? (raddr_bin + 1'b1) : raddr_bin;
-
-    // §4.3 — binary to Gray conversion
-    assign rptr_comb = raddr_bin_next ^ (raddr_bin_next >> 1);
-
-    // §4.6 — empty flag (combinational)
-    // spec_refined §4.6: rempty = (rptr == wptr_syn)
-    assign rempty = (rptr == wptr_syn);
-
-    // §4.3 — read-enable gating
-    // spec_refined §5.2: renc = rinc & !rempty
-    assign renc = rinc & ~rempty;
-
-    // §4.1 — RAM read address = lower C_ADDR_W bits of binary pointer
-    assign raddr = raddr_bin[C_ADDR_W-1:0];
-
-    // =======================================================================
-    // Sequential logic — Write domain   (timing_plan Stage 1)
-    // =======================================================================
-    // spec_refined §3.3: all write-domain regs reset to 0 on negedge wrstn
-    // spec_refined §3.2: asynchronous assert (negedge in sensitivity list)
+    // -----------------------------------------------------------------------
+    // Stage W0 — Write pointer counter (Sequential, wclk domain)
+    // -----------------------------------------------------------------------
+    assign wbin_next = (winc && !wfull_int) ? (wbin + 1'b1) : wbin;
 
     always @(posedge wclk or negedge wrstn) begin
         if (!wrstn) begin
-            waddr_bin <= {(C_PTR_W){1'b0}};  // spec_refined §3.3 table
-            wptr      <= {(C_PTR_W){1'b0}};
-            rptr_buff <= {(C_PTR_W){1'b0}};
-            rptr_syn  <= {(C_PTR_W){1'b0}};
-        end else begin
-            // §4.2 — binary pointer update
-            waddr_bin <= waddr_bin_next;
-            // §4.2 — registered Gray pointer (for full-flag and synchronizer)
-            wptr      <= wptr_comb;
-            // §4.4 — two-stage synchronizer for read pointer
-            rptr_buff <= rptr;          // capture read-domain Gray pointer
-            rptr_syn  <= rptr_buff;     // second synchronizer stage
+            wbin <= 0;
+        end else if (winc && !wfull_int) begin
+            wbin <= wbin_next;
         end
     end
 
-    // =======================================================================
-    // Sequential logic — Read domain    (timing_plan Stage 3)
-    // =======================================================================
-    // spec_refined §3.3: all read-domain regs reset to 0 on negedge rrstn
+    // -----------------------------------------------------------------------
+    // Stage W1 — Gray code conversion (Combinational, wclk domain)
+    // -----------------------------------------------------------------------
+    assign wptr = wbin ^ (wbin >> 1);
+
+    // -----------------------------------------------------------------------
+    // Stage W2 — Read-pointer synchronizer (Sequential, wclk domain)
+    // -----------------------------------------------------------------------
+    always @(posedge wclk or negedge wrstn) begin
+        if (!wrstn) begin
+            rptr_syn1 <= 0;
+            rptr_syn  <= 0;
+        end else begin
+            rptr_syn1 <= rptr;
+            rptr_syn  <= rptr_syn1;
+        end
+    end
+
+    // -----------------------------------------------------------------------
+    // Stage W3 — Full flag generation (Combinational, wclk domain)
+    // -----------------------------------------------------------------------
+    assign wfull_int = (wptr[PTR_W-1] != rptr_syn[PTR_W-1]) &&
+                       (wptr[PTR_W-2] != rptr_syn[PTR_W-2]) &&
+                       (wptr[PTR_W-3:0] == rptr_syn[PTR_W-3:0]);
+
+    assign wfull = wfull_int;
+
+    // -----------------------------------------------------------------------
+    // Stage R0 — Read pointer counter (Sequential, rclk domain)
+    // -----------------------------------------------------------------------
+    assign rbin_next = (rinc && !rempty_int) ? (rbin + 1'b1) : rbin;
 
     always @(posedge rclk or negedge rrstn) begin
         if (!rrstn) begin
-            raddr_bin <= {(C_PTR_W){1'b0}};  // spec_refined §3.3 table
-            rptr      <= {(C_PTR_W){1'b0}};
-            wptr_buff <= {(C_PTR_W){1'b0}};
-            wptr_syn  <= {(C_PTR_W){1'b0}};
-        end else begin
-            // §4.3 — binary pointer update
-            raddr_bin <= raddr_bin_next;
-            // §4.3 — registered Gray pointer (for empty-flag and synchronizer)
-            rptr      <= rptr_comb;
-            // §4.5 — two-stage synchronizer for write pointer
-            wptr_buff <= wptr;          // capture write-domain Gray pointer
-            wptr_syn  <= wptr_buff;     // second synchronizer stage
+            rbin <= 0;
+        end else if (rinc && !rempty_int) begin
+            rbin <= rbin_next;
         end
     end
 
-    // =======================================================================
-    // Submodule instantiation — dual_port_RAM  (spec_refined §4.1)
-    // Named port mapping (domain_knowledge §1.3, user requirement #4)
-    // =======================================================================
+    // -----------------------------------------------------------------------
+    // Stage R1 — Gray code conversion (Combinational, rclk domain)
+    // -----------------------------------------------------------------------
+    assign rptr = rbin ^ (rbin >> 1);
 
+    // -----------------------------------------------------------------------
+    // Stage R2 — Write-pointer synchronizer (Sequential, rclk domain)
+    // -----------------------------------------------------------------------
+    always @(posedge rclk or negedge rrstn) begin
+        if (!rrstn) begin
+            wptr_syn1 <= 0;
+            wptr_syn  <= 0;
+        end else begin
+            wptr_syn1 <= wptr;
+            wptr_syn  <= wptr_syn1;
+        end
+    end
+
+    // -----------------------------------------------------------------------
+    // Stage R3 — Empty flag generation (Combinational, rclk domain)
+    // -----------------------------------------------------------------------
+    assign rempty_int = (rptr == wptr_syn);
+    assign rempty     = rempty_int;
+
+    // -----------------------------------------------------------------------
+    // RAM enable generation
+    // -----------------------------------------------------------------------
+    assign wenc = winc && !wfull_int;
+    assign renc = rinc && !rempty_int;
+
+    // -----------------------------------------------------------------------
+    // RAM address (lower ADDR_W bits of binary pointer)
+    // -----------------------------------------------------------------------
+    assign waddr = wbin[ADDR_W-1:0];
+    assign raddr = rbin[ADDR_W-1:0];
+
+    // -----------------------------------------------------------------------
+    // Stage M0 — dual_port_RAM submodule instantiation
+    // -----------------------------------------------------------------------
     dual_port_RAM #(
-        .WIDTH(WIDTH),
-        .DEPTH(DEPTH)
+        .DEPTH(DEPTH),
+        .WIDTH(WIDTH)
     ) u_ram (
         .wclk (wclk),
         .wenc (wenc),
@@ -175,46 +162,41 @@ module asyn_fifo #(
 endmodule
 
 
-//==============================================================================
-// Module      : dual_port_RAM
-// Description : True dual-port RAM — DEPTH entries of WIDTH bits each.
-//               Write port: synchronous (posedge wclk, gated by wenc).
-//               Read port : registered output (posedge rclk, gated by renc),
-//                            1-cycle read latency per spec_refined.
-// Spec        : spec_refined.md §4.1, timing_plan.md "dual_port_RAM submodule"
-//==============================================================================
+// ============================================================================
+// dual_port_RAM — Dual-port RAM submodule
+// ============================================================================
+// Separate write clock (wclk) and read clock (rclk).
+// Write is enabled by wenc; read is enabled by renc (registered output).
+// ----------------------------------------------------------------------------
 
 module dual_port_RAM #(
-    parameter WIDTH = 8,
-    parameter DEPTH = 16
+    parameter DEPTH = 16,
+    parameter WIDTH = 8
 ) (
-    input  wire                wclk,
-    input  wire                wenc,
+    input  wire                     wclk,
+    input  wire                     wenc,
     input  wire [$clog2(DEPTH)-1:0] waddr,
-    input  wire [WIDTH-1:0]    wdata,
-    input  wire                rclk,
-    input  wire                renc,
+    input  wire [WIDTH-1:0]         wdata,
+    input  wire                     rclk,
+    input  wire                     renc,
     input  wire [$clog2(DEPTH)-1:0] raddr,
-    output reg  [WIDTH-1:0]    rdata
+    output reg  [WIDTH-1:0]         rdata
 );
 
-    // Memory array declaration
-    reg [WIDTH-1:0] mem [0:DEPTH-1];
+    // Memory array
+    reg [WIDTH-1:0] RAM_MEM [0:DEPTH-1];
 
-    // Write port — synchronous write on posedge wclk when wenc asserted
-    // spec_refined §5.1: write occurs same cycle winc is asserted
-    // Domain knowledge §6.1: use localparam for array bounds with arithmetic
+    // Write port (wclk domain)
     always @(posedge wclk) begin
         if (wenc) begin
-            mem[waddr] <= wdata;
+            RAM_MEM[waddr] <= wdata;
         end
     end
 
-    // Read port — registered output, 1-cycle read latency
-    // spec_refined §5.2: rdata valid one rclk cycle after read address presented
+    // Read port (rclk domain, registered output)
     always @(posedge rclk) begin
         if (renc) begin
-            rdata <= mem[raddr];
+            rdata <= RAM_MEM[raddr];
         end
     end
 

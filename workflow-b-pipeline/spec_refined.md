@@ -1,120 +1,143 @@
-# Refined SPEC — adder_bcd (4-bit BCD Adder)
+# SPEC Refined — barrel_shifter
+
+> Source: `spec/design.spec.txt` (RTLLM #29)
+> Agent1 refinement with cycle-level timing, corner cases, and assumptions.
+
+---
 
 ## §1 Overview
 
-A 4-bit BCD (Binary-Coded Decimal) adder for decimal arithmetic. The module adds two BCD digits and a carry-in, produces a BCD-corrected sum digit and a carry-out. The circuit is **purely combinational** — no clock or sequential elements.
+8-bit barrel shifter that rotates left by 0–7 positions based on a 3-bit
+control signal. Implemented as three cascaded stages of 2-to-1 multiplexers
+(`mux2X1`), each controlled by one bit of the control signal.
+
+---
 
 ## §2 Interface
 
 ### Ports
 
-| Port | Direction | Width | Description |
-|------|-----------|-------|-------------|
-| A    | Input     | [3:0] | First BCD digit (0–9). Values A–F (10–15) are allowed as inputs; behavior is defined in §Corner cases. |
-| B    | Input     | [3:0] | Second BCD digit (0–9). Values A–F (10–15) are allowed as inputs; behavior is defined in §Corner cases. |
-| Cin  | Input     | [1:0] | Carry-in (1-bit, value 0 or 1). |
-| Sum  | Output    | [3:0] | BCD-corrected sum digit (0–9), valid whenever inputs are stable. |
-| Cout | Output    | [1:0] | Carry-out (1-bit), asserted when the decimal sum ≥ 10. |
+| Signal | Direction | Width  | Description                               |
+|--------|-----------|--------|-------------------------------------------|
+| in     | input     | [7:0]  | 8-bit input data                          |
+| ctrl   | input     | [2:0]  | 3-bit rotate amount control               |
+| out    | output    | [7:0]  | 8-bit rotated output                      |
 
-### Port order (match testbench expectation)
+### Ordering (positional mapping)
 
-```
-adder_bcd(A, B, Cin, Sum, Cout);
-```
+Port declaration order **must** be preserved exactly: `in, ctrl, out`.
 
-No clock, no reset — this is a combinational module.
+### Reset
 
-## §3 Operation
+No reset signal is defined. The design is purely combinational (no sequential
+elements), so no reset is needed.
 
-### 3.1 Binary addition
+---
 
-```
-temp_sum = A + B + Cin;    // 5-bit result (0…19)
-```
+## §3 Submodule: mux2X1
 
-### 3.2 BCD correction
+### Ports
 
-- If `temp_sum > 9` (i.e. `temp_sum >= 4'd10`):
-  - `Sum = (temp_sum + 4'd6) & 4'hF` (add 6, keep lower 4 bits)
-  - `Cout = 1'b1`
-- Else:
-  - `Sum = temp_sum[3:0]`
-  - `Cout = 1'b0`
+| Signal | Direction | Width | Description                                 |
+|--------|-----------|-------|---------------------------------------------|
+| a      | input     | 1     | Input 0 (selected when sel=0)               |
+| b      | input     | 1     | Input 1 (selected when sel=1)               |
+| sel    | input     | 1     | Select signal                               |
+| out    | output    | 1     | Output: sel ? b : a                         |
 
-### 3.3 Correction logic (testable)
-
-| Condition                     | Sum output | Cout |
-|-------------------------------|------------|------|
-| `A + B + Cin <= 9`           | `A+B+Cin`  | 0    |
-| `A + B + Cin >= 10`          | `A+B+Cin+6` (lower 4 bits) | 1    |
-
-### 3.4 Boolean equations (informative)
+### Behavior
 
 ```
-temp      = A + B + Cin;              // 5-bit
-Cout      = (temp > 4'd9);
-correction = (Cout) ? 4'd6 : 4'd0;
-Sum       = (temp + correction) [3:0];
+out = sel ? b : a;
 ```
 
-## §4 Timing
+---
 
-The module is **combinational** — all outputs settle within the propagation delay of the logic. There is no clock, no reset, no sequential element.
+## §4 Timing & Handshakes
 
-### 4.1 Latency
+- **Combinational only**: no clock, no sequential elements, no handshake.
+- Output is valid as soon as input stabilizes (propagation delay only).
 
-- Pure combinational: outputs reflect inputs after logic gate delay (~1–2 ns in typical technology).
-- No pipelining; no register stages.
+---
 
-### 4.2 No handshake interfaces
+## §5 Stage Structure
 
-The design has no valid/ready pairs. Outputs (Sum, Cout) are always valid when inputs are stable.
+The design uses three cascaded mux stages. Each stage either passes the data
+through unchanged or rotates left by a fixed amount.
 
-## §5 Reset
+### Stage 2 — Rotate by 4 (ctrl[2])
 
-**Not applicable.** The module contains no sequential elements (flip-flops, registers, counters, FSMs). No reset signal is required or defined.
+```
+For each bit position i (0..7):
+  s2_out[i] = ctrl[2] ? s1_in[(i+4) % 8] : s1_in[i]
+where s1_in = in[7:0] (the top-level input to the chain).
+```
 
-[ASSUMPTION] The original SPEC does not mention a clock or reset. This module is purely combinational, therefore no reset is needed.
+### Stage 1 — Rotate by 2 (ctrl[1])
 
-## §6 Corner cases
+```
+For each bit position i (0..7):
+  s1_out[i] = ctrl[1] ? s2_out[(i+2) % 8] : s2_out[i]
+```
 
-### 6.1 Invalid BCD inputs (A or B in range 10–15)
+### Stage 0 — Rotate by 1 (ctrl[0])
 
-The SPEC states A and B are "BCD inputs representing a digit 0–9", but the input ports are 4-bit wide (0–15). When A and/or B carry values 10–15:
+```
+For each bit position i (0..7):
+  out[i] = ctrl[0] ? s1_out[(i+1) % 8] : s1_out[i]
+```
 
-- **Binary addition is still performed** — the module does not clamp or detect invalid BCD digits.
-- Correction fires if `A + B + Cin ≥ 10`, which will be true for most invalid combinations.
-- **Example:** A = 4'd15 (1111), B = 4'd0, Cin = 0 → temp_sum = 15 → correction fires → Sum = (15 + 6) & 0xF = 5, Cout = 1.
-- The testbench may supply invalid BCD values; the module must produce consistent, deterministic outputs for all 256 × 2 = 512 input combinations.
+### Equivalent direct expression
 
-### 6.2 Maximum input sum
+```
+For any ctrl value:
+  shift_amount = ctrl[2]*4 + ctrl[1]*2 + ctrl[0]*1
+  out[i] = in[(i + shift_amount) % 8]
+```
 
-A = 15, B = 15, Cin = 1 → temp_sum = 31 → Sum = (31 + 6) & 0xF = 1 (since 37 & 0xF = 5... wait, 37 mod 16 = 5), actually 37 & 0xF = 5, Cout = 1.
+---
 
-Actually let me recalculate: 15 + 15 + 1 = 31. 31 + 6 = 37. 37 & 0xF = 5 (since 37 = 0x25, lower nibble = 5). Cout = 1.
+## §6 Corner Cases
 
-### 6.3 Carry-in when Cin > 1
+1. **ctrl = 0**: No rotation; out = in.
+2. **ctrl = 7**: Rotate left by 7 positions (= rotate right by 1).
+3. **All control bits independent**: Each bit controls one stage; the total
+   rotation amount is the sum of the three stage amounts.
+4. **No clock**: Design is purely combinational; output settles after
+   propagation delay through three mux stages.
+5. **Undefined / X on ctrl**: If any ctrl bit is X, the corresponding muxes
+   output X on the relevant bits.
 
-Cin is defined as 1-bit, so its value is always 0 or 1. No corner case.
+---
 
-### 6.4 Overflow
+## §7 FSM
 
-The Cout signal serves as the overflow indicator for BCD addition. When chaining multiple BCD adders, Cout of stage N feeds Cin of stage N+1. The module handles a full chain correctly since it is combinational.
+No FSM. Purely combinational.
 
-## §7 Assumptions and resolutions
+---
 
-| # | Assumption | Resolution |
-|---|------------|------------|
-| 1 | Module is purely combinational (no clock, no reset). | Accepted. Original SPEC does not mention sequential elements. |
-| 2 | Input ports A and B may receive values beyond 0–9. | Accepted. The module performs add/correct on any 4-bit values; output may not be a valid BCD digit, but behavior is deterministic. |
-| 3 | Port order is `A, B, Cin, Sum, Cout` matching the original SPEC. | Accepted. Must not be reordered. |
+## §8 Assumptions and Resolutions
 
-## §8 Diff vs original SPEC
+- **[ASSUMPTION]** The operation is **rotate (wrap-around)**, not logical shift
+  (zero-fill). The original SPEC says "rotating bits" (§Title) and "shifts or
+  rotates" (§Function). We assume rotate because: (a) the title explicitly says
+  "rotating bits", (b) a barrel shifter is canonically a rotator, and (c) the
+  word "rotate" appears in the top-level description while "shift" in the
+  implementation section describes the mechanism.
+- **[ASSUMPTION]** The stage order is: ctrl[2] (shift by 4) → ctrl[1] (shift by
+  2) → ctrl[0] (shift by 1), matching the bit order in the SPEC.
+- **[ASSUMPTION]** All outputs are wires (combinational); no registers.
 
-| Aspect | Original SPEC | Refined SPEC |
-|--------|---------------|--------------|
-| Ports   | Listed A, B, Cin, Sum, Cout | Same ports, widths confirmed; port order explicitly stated. |
-| Clock/Reset | Not mentioned | Explicitly stated: none (combinational). Added [ASSUMPTION]. |
-| BCD correction | "If sum exceeds 9, add 6" | Exact equation: `temp_sum + 6`, lower 4 bits. Also: Cout = (temp_sum > 9). |
-| Invalid inputs | Not discussed | §6 corner cases: deterministic behavior for A/B values 10–15. |
-| Testable conditions | None | §3.3 table: exact Sum and Cout for each condition. |
+---
+
+## §9 Diff vs Original SPEC
+
+| Change | Description |
+|--------|-------------|
+| §2 Reset | Explicitly states no reset (purely combinational) |
+| §3 mux2X1 | Extracted explicit port table and truth table |
+| §5 Stage structure | Replaced prose with exact equations per stage |
+| §6 Corner cases | New section |
+| §7 FSM | Clarified no FSM |
+| §8 Assumptions | Documented rotate vs shift ambiguity and stage order |
+| Operation | Clarified as **rotate left with wrap-around** (not logical shift) |

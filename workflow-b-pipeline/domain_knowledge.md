@@ -152,3 +152,33 @@ product <= {24'd0, a_mantissa} * {24'd0, b_mantissa};
 ```
 
 **基本原則**：當賦值給 N-bit 乘積暫存器時，確保 `*` 表達式中每個運算元在乘法前至少是 N bits——明確地 zero-extend 或 sign-extend。不要依賴左側目標寬度來控制中間結果的位寬。
+
+### 6.5 `always` 區塊內被賦值的信號必須是 `reg`（關鍵陷阱）
+
+任何在 `always`（含 `always @(*)`、`always_comb`、`always_ff`）區塊**左側被賦值**的信號，**必須宣告為 `reg`**（或 SystemVerilog 的 `logic`），**不能是 `wire`**。VCS 會報 `Error-[IBLHS-NT] Illegal behavioral left hand side`。
+
+這是 Verilog 語言的鐵律——`wire` 只能被 `assign` 或 port 連接驅動，不能出現在 `always` block 左側。
+
+```verilog
+// 錯誤 — nstate 是 wire，不能在 always_comb 裡被賦值
+wire [3:0] nstate;
+always_comb begin
+    case (state)
+        IDLE: nstate = S1;   // ← VCS: IBLHS-NT error
+        ...
+    endcase
+end
+
+// 正確 — nstate 宣告為 reg
+reg [3:0] nstate;
+always_comb begin
+    case (state)
+        IDLE: nstate = S1;   // OK
+        ...
+    endcase
+end
+```
+
+**受影響的常見信號**：FSM next-state（`nstate` / `next_state`）、`always_comb` 中的組合輸出、`always @(*)` 中的中間變數。
+
+**Agent3 寫 RTL 時務必檢查**：每個 `always` block 左側出現的信號，是否已在模組宣告區以 `reg` 宣告。

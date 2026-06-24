@@ -136,3 +136,40 @@ product <= {24'd0, a_mantissa} * {24'd0, b_mantissa};
 operand in the `*` expression is at least N bits wide before the multiplication
 — zero-extend or sign-extend explicitly. Do not rely on the LHS target width
 to control the intermediate result width.
+
+### 6.5 Signals assigned inside `always` must be `reg` (critical trap)
+
+Any signal that appears on the **left-hand side** of an assignment inside an
+`always` block (`always @(*)`, `always_comb`, `always_ff`) **must be declared
+as `reg`** (or `logic` in SystemVerilog), **not `wire`**. VCS will report
+`Error-[IBLHS-NT] Illegal behavioral left hand side`.
+
+This is a hard rule of Verilog — `wire` can only be driven by `assign` or
+port connections, never by procedural assignments inside `always`.
+
+```verilog
+// WRONG — nstate is a wire, cannot be assigned in always_comb
+wire [3:0] nstate;
+always_comb begin
+    case (state)
+        IDLE: nstate = S1;   // ← VCS: IBLHS-NT error
+        ...
+    endcase
+end
+
+// CORRECT — nstate declared as reg
+reg [3:0] nstate;
+always_comb begin
+    case (state)
+        IDLE: nstate = S1;   // OK
+        ...
+    endcase
+end
+```
+
+**Common signals affected**: FSM next-state (`nstate` / `next_state`),
+combinational outputs computed in `always_comb`, intermediate variables inside
+`always @(*)`.
+
+**Agent3 must verify before writing RTL**: every signal on the left-hand side
+of an `always` block is declared as `reg` in the module declaration area.

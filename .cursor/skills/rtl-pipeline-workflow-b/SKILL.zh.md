@@ -89,8 +89,18 @@ description: >-
    - **避免死鎖**：確保沒有 `valid` 等 `ready`、同時 `ready` 等 `valid` 的循環依賴
 
 9. **FSM 完整列舉（每個 state × 每個 input）**
-   列出完整轉移表：對每個 state 列舉所有 input 組合，寫明 **下一狀態 + 各輸出值**。
-   必須含 **default 子句** 處理無效狀態編碼（例如回到 IDLE）。
+   列出完整轉移表：對每個 state（含 DONE、DISC、FLAG、ERR、WAIT 等終端／僅輸出狀態）
+   列舉**所有** input 組合，寫明 **下一狀態 + 各輸出值**。
+   必須含 **default 子句** 處理無效狀態編碼。
+
+   **關鍵 — terminal 回到主 loop 的轉移**：對任何會回到主 FSM loop 的狀態（如
+   DONE → IDLE、DISC → S0），必須對**每個 input 值**分別指定下一狀態——不可
+   簡化成單一無條件轉移，除非所有 input 真的導向同一狀態。常見錯誤範例：
+   `DISC/FLAG → S0` 不考慮當下 `in`，但 spec 要求 `DISC → (in ? S1 : S0)`。
+
+   **輸出時序精確度**：對每個輸出信號，寫明它是**與觸發條件同 cycle** 還是
+   **隔一 cycle** 才被 assert。用精確措辭：「在條件成立的 clock edge 上 assert」
+   對比「在條件成立後隔一 clock cycle 開始 assert 一個 cycle」。
 
 10. **每個 opcode 的所有輸出旗標**
     當模組有多個狀態旗標（zero, carry, negative, overflow, flag）與控制 opcode：
@@ -105,7 +115,22 @@ description: >-
     | ADD    | a + b   | ...  | ...   | ...      | ...      | 1'bz |
     | SUB    | a - b   | ...  | ...   | ...      | ...      | 1'bz |
 
-11. **邊界狀況專區**
+11. **FSM 狀態精簡——禁止發明中間狀態**
+    將 FSM 狀態**一對一**映射到 SPEC 描述的步驟／階段。除非 SPEC 明確要求一個
+    wait 或 setup cycle，否則**不要**添加額外狀態（如在 start bit 偵測與 data
+    接收之間插入獨立的 START 狀態）。每多加一個狀態就多一個 cycle 的 latency——
+    必須在 cycle 層級驗證該狀態是否必要，而非出於習慣。
+
+    **常見反模式**：SPEC 說「偵測 start bit，然後接收 8 個 data bits」——
+    FSM 應從 IDLE 直接轉到 DATA（或 IDLE → B0 → ... → B7）。**不要**插入
+    `IDLE → START → DATA`。start bit 是在觸發 IDLE→DATA 轉移的那個 clock edge
+    被 sample 的；它不需要獨立的狀態。
+
+    **驗證測試**：對每個 proposed state，問「這個 state 裡發生了什麼 distinct
+    behavior 是上一個或下一個 state 做不到的？」如果答案是「只是準備／過渡」，
+    這個 state 很可能是多餘的——合併它。
+
+12. **邊界狀況專區**
     新增獨立 **§邊界狀況（Corner cases）** 小節：
     - 計數器：最小值、最大值、繞回（wrap-around）行為
     - FSM：無效／保留狀態編碼的行為
@@ -168,10 +193,16 @@ description: >-
 
 **僅讀**：
 
+- `spec/design.spec.txt`（原始 SPEC — 對照 transitions 和 timing 中可能被
+  spec_refined 過度摘要的細節）
 - `spec_refined.md`
 - `timing_plan.md`
 - `collaboration_log.md`
 - `workflow-b-pipeline/domain_knowledge.md`
+
+**解析順序**：`spec_refined.md` 為架構決策的主要來源。若 spec_refined 遺漏或
+過度摘要某轉移細節（例如 terminal state 的 fan-out、輸出 timing），以原始
+SPEC 填補。殘餘歧義標 `[ASSUMPTION]`。
 
 **輸出**：`workflow-b-pipeline/rtl/*.v`
 
@@ -181,8 +212,9 @@ description: >-
 4. **Port 順序必須與 testbench 對齊**：部分 testbench 使用 **positional port mapping**（例：`DUT(a, b, clk)` 不含 `.port()`）。重排 port 順序會改變實際接腳。必須**嚴格遵循原始 SPEC 的 port 宣告順序**；不可依字母、方向排列。若 spec_refined 新增 port，附加在原有 port 之後，不可重排原有 port。
 5. **子模組例化一律用 named port mapping**：`.port_name(signal)`，禁止 positional。
 6. **遵守 domain_knowledge §1：內部 wire/reg 先宣告再 assign/always/例化；模組順序見該檔**
-7. 註解引用 Stage ID 或 spec 章節
-8. 文件不足則停止並列缺失，勿自行發明架構
+7. **遵守 domain_knowledge §6.5：`always` 左側被賦值的信號必須是 `reg`**（`nstate`、`next_state` 等 FSM 組合信號絕不能是 `wire`；VCS 會報 IBLHS-NT）
+8. 註解引用 Stage ID 或 spec 章節
+9. 文件不足則停止並列缺失，勿自行發明架構
 
 **Verilog**：單一 `clk`；**reset 依 spec_refined**（名稱、極性、同步行為）；勿預設改成 `rst_n`；可綜合；檔名=模組名。
 

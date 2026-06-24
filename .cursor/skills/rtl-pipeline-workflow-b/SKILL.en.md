@@ -91,9 +91,22 @@ Do not read `RTLLM/`, `verified_*.v`, `testbench.v`, `_chatgpt35/`, `_chatgpt4/`
      while `ready` waits for `valid` across clock domains)
 
 8. **FSM completeness: every state × every input**
-   Enumerate the full transition table: for each state, list all input
+   Enumerate the full transition table: for each state (including terminal /
+   output-only states like DONE, DISC, FLAG, ERR, WAIT), list **all** input
    combinations and the resulting next state + output values.  Include a
    **default clause** for invalid state entries.
+
+   **Critical — terminal-to-loop transitions**: For any state that transitions
+   back to the main FSM loop (e.g. DONE → IDLE, DISC → S0), specify the
+   next state **for each input value** — do not collapse into a single
+   unconditional transition unless every input truly leads to the same state.
+   A common bug: `DISC/FLAG → S0` regardless of `in`, when the spec
+   requires `DISC → (in ? S1 : S0)`.
+
+   **Output timing**: For every output signal, specify whether it is asserted
+   in the **same cycle** as the triggering condition or in the **next cycle**.
+   Use precise language: "asserted on the clock edge where the condition is
+   met" vs. "asserted for one cycle starting one clock after the condition".
 
 9. **Multi-output per-opcode enumeration**
    When the module has multiple status flags (zero, carry, negative, overflow,
@@ -119,6 +132,24 @@ Do not read `RTLLM/`, `verified_*.v`, `testbench.v`, `_chatgpt35/`, `_chatgpt4/`
     - For edge detectors: repeated toggling, missing edge, simultaneous edges.
     - For sequential circuits: reset assertion/deassertion timing relative to
       clock edges.
+
+11. **FSM state parsimony — no invented intermediate states**
+    Map FSM states **one-to-one** to the phases/steps described in the SPEC.
+    Do not add extra states (e.g. a separate START state between start-bit
+    detection and data reception) unless the SPEC explicitly requires a wait
+    or a setup cycle. Every added state adds one cycle of latency — verify at
+    cycle level that the state is necessary, not habitual.
+
+    **Common anti-pattern**: SPEC says "detect the start bit, then wait for
+    all 8 data bits" — the FSM should transition directly from IDLE to DATA
+    (or IDLE → B0 → ... → B7). Do **not** insert `IDLE → START → DATA`.
+    The start bit is sampled during the clock edge that triggers the IDLE→DATA
+    transition; it does not own a separate state.
+
+    **Litmus test**: for each proposed state, ask "what distinct behavior
+    happens during this state that cannot happen during the previous or next
+    state?" If the answer is "just preparation / bookkeeping", the state is
+    likely spurious — merge it.
 
 **Forbidden**: Verilog; full `timing_plan` (interface timing constraints OK).
 
@@ -179,10 +210,17 @@ Do not read `RTLLM/`, `verified_*.v`, `testbench.v`, `_chatgpt35/`, `_chatgpt4/`
 
 **Read only**:
 
+- `spec/design.spec.txt` (raw SPEC — cross-reference transitions and timing
+  that may have been over-summarized in spec_refined)
 - `spec_refined.md`
 - `timing_plan.md`
 - `collaboration_log.md`
 - `workflow-b-pipeline/domain_knowledge.md`
+
+**Resolution order**: `spec_refined.md` is the primary source for architecture
+decisions. If spec_refined omits or over-summarizes a transition detail
+(e.g. terminal-state fan-out, output timing), fall back to the raw SPEC to
+fill the gap. `[ASSUMPTION]` any remaining ambiguity.
 
 **Output**: `workflow-b-pipeline/rtl/*.v`
 
@@ -198,8 +236,9 @@ Do not read `RTLLM/`, `verified_*.v`, `testbench.v`, `_chatgpt35/`, `_chatgpt4/`
 5. **Prefer named port mapping** in generated RTL submodule instantiations:
    always use `.port_name(signal)`, never positional.
 6. **Obey domain_knowledge §1: declare internal wire/reg before assign/always/instances; see that file for module order**
-7. Comments cite Stage ID or spec section
-8. If docs are insufficient: stop and list gaps; do not invent major architecture
+7. **Obey domain_knowledge §6.5: signals assigned inside `always` must be `reg`** (`nstate`, `next_state`, etc. — FSM combinational signals must never be `wire`; VCS reports IBLHS-NT)
+8. Comments cite Stage ID or spec section
+9. If docs are insufficient: stop and list gaps; do not invent major architecture
 
 **Verilog**: single `clk`; **reset per spec_refined** (name, polarity, sync behavior); do not default to `rst_n`; synthesizable; file name = module name.
 

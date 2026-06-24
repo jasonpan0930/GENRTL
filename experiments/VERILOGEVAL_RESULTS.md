@@ -1,22 +1,22 @@
-# VerilogEval 實驗結果 — Workflow A vs Workflow B（held-out test）
+# VerilogEval 實驗結果 — Workflow A vs Workflow B（困難題，held-out test）
 
 > 實驗日期：2026-06-23 ~ 2026-06-24  
-> Benchmark：VerilogEval v2 (spec-to-rtl) 156 題  
-> 已跑：42 題（含全部 33 題困難 + 8 題中等 + 1 題簡單）  
+> Benchmark：VerilogEval v2 (spec-to-rtl) 困難題 33 題  
+> 已跑：A=33, B=33（全部困難題均有 A/B 結果）  
 > 評估方式：Pass@1，VCS 編譯 + 模擬，禁止依 log 修改 RTL
 
 ---
 
-## 整體 Pass@1
+## 困難題 Pass@1
 
 | Workflow | 已跑題數 | Pass | Pass@1 |
 |----------|---------|------|--------|
-| A（Direct SPEC→RTL） | 42 | 27 | 64.3% |
-| B（Pipeline: Agent1→2→3） | 34 | 25 | **73.5%** |
+| A（Direct SPEC→RTL） | 33 | 18 | 54.5% |
+| B（Pipeline: Agent1→2→3） | 33 | 23 | **69.7%** |
 
 ---
 
-## 困難題（33 題）最終結果
+## 最終結果（33 題）
 
 | 類別 | 題數 | 說明 |
 |------|------|------|

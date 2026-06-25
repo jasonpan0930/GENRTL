@@ -11,8 +11,12 @@
 
 | 階段                                                              | Sim Pass | Pass@1    |
 | ---------------------------------------------------------------- | -------- | --------- |
+| **First Shot A**（Direct SPEC→RTL，未 tune workflow）              | 39 / 50  | **78.0%** |
 | **First Shot B**（無 SKILL，無 domain_knowledge）                    | 35 / 50  | **70.0%** |
 | **Final 完整重跑**（加入 SKILL + domain_knowledge，50 題全新 A/B 平行實驗） | 47 / 50  | **94.0%** |
+
+> First Shot A 分數與 RTL 存於 `experiments/results.csv`（workflow=a）與 `experiments/artifacts/*/workflow_a/`。  
+> Final A 嚴格 Pass@1 為 38/50（76%），見下方「最終 A vs B 對比」。
 
 
 > 註：#28 LFSR 在 Final 重跑時因 positional mapping 再次 compile fail（不同 seed 下 port 順序推測不同）。
